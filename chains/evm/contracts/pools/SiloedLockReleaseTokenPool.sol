@@ -2,12 +2,14 @@
 pragma solidity ^0.8.24;
 
 import {ILockBox} from "../interfaces/ILockBox.sol";
+import {ITokenHandler} from "../interfaces/ITokenHandler.sol";
 import {ITypeAndVersion} from "@chainlink/contracts/src/v0.8/shared/interfaces/ITypeAndVersion.sol";
 
 import {TokenPool} from "./TokenPool.sol";
 
 import {IERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/utils/SafeERC20.sol";
+import {IERC165} from "@openzeppelin/contracts@5.3.0/utils/introspection/IERC165.sol";
 import {EnumerableMap} from "@openzeppelin/contracts@5.3.0/utils/structs/EnumerableMap.sol";
 
 /// @notice A variation on Lock Release token pools where liquidity is shared among some chains, and stored independently
@@ -21,6 +23,9 @@ contract SiloedLockReleaseTokenPool is TokenPool, ITypeAndVersion {
   }
 
   error LockBoxNotConfigured(uint64 remoteChainSelector);
+  error SelectorNotAllowed(uint64 remoteChainSelector, address lockBox);
+
+  event LockBoxConfigured(uint64 indexed remoteChainSelector, address indexed lockBox, bool legacy);
 
   struct LockBoxConfig {
     uint64 remoteChainSelector;
@@ -90,7 +95,21 @@ contract SiloedLockReleaseTokenPool is TokenPool, ITypeAndVersion {
       if (!ILockBox(lockBox).isTokenSupported(address(i_token))) {
         revert InvalidToken(address(i_token));
       }
+
+      bool legacy = true;
+      try IERC165(lockBox).supportsInterface(type(ITokenHandler).interfaceId) returns (bool isTokenHandler) {
+        if (isTokenHandler) {
+          legacy = false;
+          if (!ITokenHandler(lockBox).isSelectorAllowed(lockBoxConfigs[i].remoteChainSelector)) {
+            revert SelectorNotAllowed(lockBoxConfigs[i].remoteChainSelector, lockBox);
+          }
+        }
+      } catch {
+        // Legacy lockboxes do not implement ERC-165.
+      }
+
       s_lockBoxes.set(lockBoxConfigs[i].remoteChainSelector, lockBox);
+      emit LockBoxConfigured(lockBoxConfigs[i].remoteChainSelector, lockBox, legacy);
     }
   }
 
