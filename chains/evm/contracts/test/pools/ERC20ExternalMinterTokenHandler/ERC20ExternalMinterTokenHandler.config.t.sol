@@ -6,6 +6,7 @@ import {ERC20ExternalMinterTokenHandler} from "../../../pools/ERC20ExternalMinte
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
 import {CrossChainToken} from "../../../tokens/CrossChainToken.sol";
 import {ERC20ExternalMinterTokenHandlerSetup} from "./ERC20ExternalMinterTokenHandlerSetup.t.sol";
+import {IERC165} from "@openzeppelin/contracts@5.3.0/utils/introspection/IERC165.sol";
 
 contract ERC20ExternalMinterTokenHandler_config is ERC20ExternalMinterTokenHandlerSetup {
   function test_constructor() public view {
@@ -45,5 +46,7 @@ contract ERC20ExternalMinterTokenHandler_config is ERC20ExternalMinterTokenHandl
 
   function test_supportsInterface() public view {
     assertTrue(s_handler.supportsInterface(type(ITokenHandler).interfaceId));
+    assertTrue(s_handler.supportsInterface(type(IERC165).interfaceId));
+    assertFalse(s_handler.supportsInterface(0xffffffff));
   }
 }
