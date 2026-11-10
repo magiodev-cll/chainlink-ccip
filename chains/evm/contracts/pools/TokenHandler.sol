@@ -81,12 +81,22 @@ abstract contract TokenHandler is ITokenHandler, IERC165, ITypeAndVersion, Autho
   function setSelectorAllowed(
     uint64 remoteChainSelector,
     bool allowed
-  ) public virtual onlyOwner {
+  ) external onlyOwner {
     if (remoteChainSelector == 0) revert InvalidChainSelector();
+
+    _validateSelectorAllowed(remoteChainSelector, allowed);
 
     s_allowedSelectors[remoteChainSelector] = allowed;
     emit SelectorAllowedSet(remoteChainSelector, allowed);
   }
+
+  /// @dev Hook for subclasses that need extra preconditions before a selector is allowed or disallowed.
+  /// @param remoteChainSelector The selector being configured.
+  /// @param allowed Whether the selector is being allowed or disallowed.
+  function _validateSelectorAllowed(
+    uint64 remoteChainSelector,
+    bool allowed
+  ) internal view virtual {}
 
   /// @notice Grants or revokes admin and liquidity access for selector zero.
   function setAdminCaller(

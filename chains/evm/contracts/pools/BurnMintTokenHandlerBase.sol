@@ -58,20 +58,6 @@ abstract contract BurnMintTokenHandlerBase is TokenHandler {
   // │                       External setters                        │
   // ================================================================
 
-  /// @inheritdoc TokenHandler
-  /// @dev Enabling a selector requires at least one nonzero cap, because both zero leaves it unable to move a token.
-  /// Disabling is always allowed and does not reset the caps or counters.
-  function setSelectorAllowed(
-    uint64 remoteChainSelector,
-    bool allowed
-  ) public override onlyOwner {
-    if (allowed && s_mintCaps[remoteChainSelector] == 0 && s_burnCaps[remoteChainSelector] == 0) {
-      revert CapsNotSet(remoteChainSelector);
-    }
-
-    super.setSelectorAllowed(remoteChainSelector, allowed);
-  }
-
   /// @notice Configures the initial mint and burn caps for a bridge selector.
   /// @dev The caps are initial allowances, not gross lifetime limits. Net minted is minted minus burned and net
   /// burned is burned minus minted. A zero cap is valid on one side, but both zero on a selector with no traffic
@@ -114,6 +100,17 @@ abstract contract BurnMintTokenHandlerBase is TokenHandler {
   // ================================================================
   // │                       Internal helpers                        │
   // ================================================================
+
+  /// @dev Enabling a selector requires at least one nonzero cap, because both zero leaves it unable to move a token.
+  /// Disabling is always allowed and does not reset the caps or counters.
+  function _validateSelectorAllowed(
+    uint64 remoteChainSelector,
+    bool allowed
+  ) internal view override {
+    if (allowed && s_mintCaps[remoteChainSelector] == 0 && s_burnCaps[remoteChainSelector] == 0) {
+      revert CapsNotSet(remoteChainSelector);
+    }
+  }
 
   /// @dev Checks and updates the gross mint counter before the external mint call. Selector zero is skipped because
   /// the admin path is uncapped and uncounted.

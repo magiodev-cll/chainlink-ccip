@@ -46,6 +46,11 @@ contract ERC20BurnMintTokenHandler_config is ERC20BurnMintTokenHandlerSetup {
     s_handler.setSelectorCaps(0, 1, 1);
   }
 
+  function test_setSelectorAllowed_RevertWhen_ZeroSelector() public {
+    vm.expectRevert(TokenHandler.InvalidChainSelector.selector);
+    s_handler.setSelectorAllowed(0, true);
+  }
+
   function test_setSelectorAllowed_RevertWhen_CapsNotSet() public {
     vm.expectRevert(abi.encodeWithSelector(BurnMintTokenHandlerBase.CapsNotSet.selector, OTHER_CHAIN_SELECTOR));
     s_handler.setSelectorAllowed(OTHER_CHAIN_SELECTOR, true);
