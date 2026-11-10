@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {ITokenHandler} from "../../../interfaces/ITokenHandler.sol";
+import {BurnMintTokenHandlerBase} from "../../../pools/BurnMintTokenHandlerBase.sol";
 import {ERC20ExternalMinterTokenHandler} from "../../../pools/ERC20ExternalMinterTokenHandler.sol";
 import {TokenHandler} from "../../../pools/TokenHandler.sol";
 import {ERC20ExternalMinterTokenHandlerSetup} from "./ERC20ExternalMinterTokenHandlerSetup.t.sol";
@@ -109,6 +110,27 @@ contract ERC20ExternalMinterTokenHandler_deposit is ERC20ExternalMinterTokenHand
     assertEq(s_token.totalSupply(), supplyBefore - amount1 - amount2);
     assertEq(s_token.balanceOf(address(s_handler)), 0);
     assertEq(s_token.balanceOf(address(s_minter)), 0);
+  }
+
+  function test_deposit_RevertWhen_BurnCapExceeded() public {
+    s_handler.setSelectorCaps(BRIDGE_CHAIN_SELECTOR, type(uint256).max, 500e18);
+
+    vm.startPrank(s_bridgeCaller);
+    s_token.approve(address(s_handler), 600e18);
+    vm.expectRevert(
+      abi.encodeWithSelector(BurnMintTokenHandlerBase.BurnCapExceeded.selector, BRIDGE_CHAIN_SELECTOR, 600e18, 500e18)
+    );
+
+    s_handler.deposit(address(s_token), BRIDGE_CHAIN_SELECTOR, 600e18);
+    vm.stopPrank();
+  }
+
+  function test_deposit_AdminSelectorIgnoresCaps() public {
+    s_handler.setSelectorCaps(BRIDGE_CHAIN_SELECTOR, 0, 0);
+
+    _deposit(s_adminCaller, 0, 100e18);
+
+    assertEq(s_token.balanceOf(s_adminCaller), 9_900e18);
   }
 
   function test_deposit_RevertWhen_UnsupportedToken() public {

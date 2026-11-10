@@ -23,6 +23,20 @@ contract ERC20ExternalMinterTokenHandler_config is ERC20ExternalMinterTokenHandl
     assertEq(s_handler.typeAndVersion(), "ERC20ExternalMinterTokenHandler 2.0.0");
   }
 
+  function test_getSelectorAccounting() public {
+    _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, 100e18);
+
+    vm.prank(s_bridgeCaller);
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 40e18, s_recipient);
+
+    (uint256 minted, uint256 burned, uint256 mintCap, uint256 burnCap) =
+      s_handler.getSelectorAccounting(BRIDGE_CHAIN_SELECTOR);
+    assertEq(minted, 40e18);
+    assertEq(burned, 100e18);
+    assertEq(mintCap, type(uint256).max);
+    assertEq(burnCap, type(uint256).max);
+  }
+
   function test_constructor_RevertWhen_MinterTokenMismatch() public {
     CrossChainToken otherToken = new CrossChainToken(
       BaseERC20.ConstructorParams({
