@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {ITokenHandler} from "../../../interfaces/ITokenHandler.sol";
 import {ERC20LockBoxTokenHandler} from "../../../pools/ERC20LockBoxTokenHandler.sol";
+import {TokenHandler} from "../../../pools/TokenHandler.sol";
 import {ERC20LockBoxTokenHandlerSetup} from "./ERC20LockBoxTokenHandlerSetup.t.sol";
 import {AuthorizedCallers} from "@chainlink/contracts/src/v0.8/shared/access/AuthorizedCallers.sol";
 import {IERC165} from "@openzeppelin/contracts@5.3.0/utils/introspection/IERC165.sol";
@@ -20,32 +21,32 @@ contract ERC20LockBoxTokenHandler_config is ERC20LockBoxTokenHandlerSetup {
 
   function test_setSelectorAllowed() public {
     vm.expectEmit();
-    emit ERC20LockBoxTokenHandler.SelectorAllowedSet(OTHER_CHAIN_SELECTOR, true);
+    emit TokenHandler.SelectorAllowedSet(OTHER_CHAIN_SELECTOR, true);
     s_handler.setSelectorAllowed(OTHER_CHAIN_SELECTOR, true);
 
     assertTrue(s_handler.isSelectorAllowed(OTHER_CHAIN_SELECTOR));
 
     vm.expectEmit();
-    emit ERC20LockBoxTokenHandler.SelectorAllowedSet(OTHER_CHAIN_SELECTOR, false);
+    emit TokenHandler.SelectorAllowedSet(OTHER_CHAIN_SELECTOR, false);
     s_handler.setSelectorAllowed(OTHER_CHAIN_SELECTOR, false);
 
     assertFalse(s_handler.isSelectorAllowed(OTHER_CHAIN_SELECTOR));
   }
 
   function test_setSelectorAllowed_RevertWhen_ZeroSelector() public {
-    vm.expectRevert(ERC20LockBoxTokenHandler.InvalidChainSelector.selector);
+    vm.expectRevert(TokenHandler.InvalidChainSelector.selector);
     s_handler.setSelectorAllowed(0, true);
   }
 
   function test_setAdminCaller() public {
     vm.expectEmit();
-    emit ERC20LockBoxTokenHandler.AdminCallerSet(s_adminCaller, false);
+    emit TokenHandler.AdminCallerSet(s_adminCaller, false);
     s_handler.setAdminCaller(s_adminCaller, false);
 
     assertFalse(s_handler.isAdminCaller(s_adminCaller));
 
     vm.expectEmit();
-    emit ERC20LockBoxTokenHandler.AdminCallerSet(s_adminCaller, true);
+    emit TokenHandler.AdminCallerSet(s_adminCaller, true);
     s_handler.setAdminCaller(s_adminCaller, true);
 
     assertTrue(s_handler.isAdminCaller(s_adminCaller));

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
+import {ITokenHandler} from "../../../interfaces/ITokenHandler.sol";
 import {ERC20LockBoxTokenHandler} from "../../../pools/ERC20LockBoxTokenHandler.sol";
+import {TokenHandler} from "../../../pools/TokenHandler.sol";
 import {ERC20LockBoxTokenHandlerSetup} from "./ERC20LockBoxTokenHandlerSetup.t.sol";
 import {AuthorizedCallers} from "@chainlink/contracts/src/v0.8/shared/access/AuthorizedCallers.sol";
 
@@ -13,9 +15,7 @@ contract ERC20LockBoxTokenHandler_withdraw is ERC20LockBoxTokenHandlerSetup {
     vm.startPrank(s_bridgeCaller);
 
     vm.expectEmit();
-    emit ERC20LockBoxTokenHandler.Withdrawal(
-      address(s_token), s_bridgeCaller, s_recipient, BRIDGE_CHAIN_SELECTOR, amount
-    );
+    emit ITokenHandler.Withdrawal(address(s_token), s_bridgeCaller, s_recipient, BRIDGE_CHAIN_SELECTOR, amount);
 
     s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, amount, s_recipient);
     vm.stopPrank();
@@ -31,7 +31,7 @@ contract ERC20LockBoxTokenHandler_withdraw is ERC20LockBoxTokenHandlerSetup {
     vm.startPrank(s_adminCaller);
 
     vm.expectEmit();
-    emit ERC20LockBoxTokenHandler.Withdrawal(address(s_token), s_adminCaller, s_recipient, 0, amount);
+    emit ITokenHandler.Withdrawal(address(s_token), s_adminCaller, s_recipient, 0, amount);
 
     s_handler.withdraw(address(s_token), 0, type(uint256).max, s_recipient);
     vm.stopPrank();
@@ -53,7 +53,7 @@ contract ERC20LockBoxTokenHandler_withdraw is ERC20LockBoxTokenHandlerSetup {
     _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, 1_000e18);
 
     vm.prank(s_bridgeCaller);
-    vm.expectRevert(abi.encodeWithSelector(ERC20LockBoxTokenHandler.SelectorNotAllowed.selector, OTHER_CHAIN_SELECTOR));
+    vm.expectRevert(abi.encodeWithSelector(TokenHandler.SelectorNotAllowed.selector, OTHER_CHAIN_SELECTOR));
 
     s_handler.withdraw(address(s_token), OTHER_CHAIN_SELECTOR, 1, s_recipient);
   }
@@ -71,7 +71,7 @@ contract ERC20LockBoxTokenHandler_withdraw is ERC20LockBoxTokenHandlerSetup {
     _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, 1_000e18);
 
     vm.prank(s_bridgeCaller);
-    vm.expectRevert(ERC20LockBoxTokenHandler.RecipientCannotBeZeroAddress.selector);
+    vm.expectRevert(TokenHandler.RecipientCannotBeZeroAddress.selector);
 
     s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 1, address(0));
   }
@@ -93,7 +93,7 @@ contract ERC20LockBoxTokenHandler_withdraw is ERC20LockBoxTokenHandlerSetup {
     _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, 1_000e18);
 
     vm.prank(s_bridgeCaller);
-    vm.expectRevert(ERC20LockBoxTokenHandler.TokenAmountCannotBeZero.selector);
+    vm.expectRevert(TokenHandler.TokenAmountCannotBeZero.selector);
 
     s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 0, s_recipient);
   }

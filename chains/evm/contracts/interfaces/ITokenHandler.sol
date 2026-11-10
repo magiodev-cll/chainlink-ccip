@@ -9,6 +9,11 @@ interface ITokenHandler {
     CUSTOM
   }
 
+  event Deposit(address indexed token, address indexed depositor, uint64 indexed remoteChainSelector, uint256 amount);
+  event Withdrawal(
+    address indexed token, address indexed caller, address indexed recipient, uint64 remoteChainSelector, uint256 amount
+  );
+
   function deposit(
     address token,
     uint64 remoteChainSelector,

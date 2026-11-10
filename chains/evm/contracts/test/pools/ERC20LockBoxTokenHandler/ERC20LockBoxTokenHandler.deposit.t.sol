@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
+import {ITokenHandler} from "../../../interfaces/ITokenHandler.sol";
 import {ERC20LockBoxTokenHandler} from "../../../pools/ERC20LockBoxTokenHandler.sol";
+import {TokenHandler} from "../../../pools/TokenHandler.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
 import {CrossChainToken} from "../../../tokens/CrossChainToken.sol";
 import {ERC20LockBoxTokenHandlerSetup} from "./ERC20LockBoxTokenHandlerSetup.t.sol";
@@ -15,7 +17,7 @@ contract ERC20LockBoxTokenHandler_deposit is ERC20LockBoxTokenHandlerSetup {
     s_token.approve(address(s_handler), amount);
 
     vm.expectEmit();
-    emit ERC20LockBoxTokenHandler.Deposit(address(s_token), s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, amount);
+    emit ITokenHandler.Deposit(address(s_token), s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, amount);
 
     s_handler.deposit(address(s_token), BRIDGE_CHAIN_SELECTOR, amount);
     vm.stopPrank();
@@ -30,7 +32,7 @@ contract ERC20LockBoxTokenHandler_deposit is ERC20LockBoxTokenHandlerSetup {
     s_token.approve(address(s_handler), amount);
 
     vm.expectEmit();
-    emit ERC20LockBoxTokenHandler.Deposit(address(s_token), s_adminCaller, 0, amount);
+    emit ITokenHandler.Deposit(address(s_token), s_adminCaller, 0, amount);
 
     s_handler.deposit(address(s_token), 0, amount);
     vm.stopPrank();
@@ -43,7 +45,7 @@ contract ERC20LockBoxTokenHandler_deposit is ERC20LockBoxTokenHandlerSetup {
 
     vm.startPrank(s_bridgeCaller);
     s_token.approve(address(s_handler), amount);
-    vm.expectRevert(abi.encodeWithSelector(ERC20LockBoxTokenHandler.SelectorNotAllowed.selector, OTHER_CHAIN_SELECTOR));
+    vm.expectRevert(abi.encodeWithSelector(TokenHandler.SelectorNotAllowed.selector, OTHER_CHAIN_SELECTOR));
 
     s_handler.deposit(address(s_token), OTHER_CHAIN_SELECTOR, amount);
     vm.stopPrank();
@@ -54,7 +56,7 @@ contract ERC20LockBoxTokenHandler_deposit is ERC20LockBoxTokenHandlerSetup {
 
     vm.startPrank(s_bridgeCaller);
     s_token.approve(address(s_handler), amount);
-    vm.expectRevert(abi.encodeWithSelector(ERC20LockBoxTokenHandler.UnauthorizedAdminCaller.selector, s_bridgeCaller));
+    vm.expectRevert(abi.encodeWithSelector(TokenHandler.UnauthorizedAdminCaller.selector, s_bridgeCaller));
 
     s_handler.deposit(address(s_token), 0, amount);
     vm.stopPrank();
@@ -82,7 +84,7 @@ contract ERC20LockBoxTokenHandler_deposit is ERC20LockBoxTokenHandlerSetup {
   function test_deposit_RevertWhen_TokenAmountCannotBeZero() public {
     vm.startPrank(s_bridgeCaller);
     s_token.approve(address(s_handler), 1);
-    vm.expectRevert(ERC20LockBoxTokenHandler.TokenAmountCannotBeZero.selector);
+    vm.expectRevert(TokenHandler.TokenAmountCannotBeZero.selector);
 
     s_handler.deposit(address(s_token), BRIDGE_CHAIN_SELECTOR, 0);
     vm.stopPrank();
@@ -107,9 +109,7 @@ contract ERC20LockBoxTokenHandler_deposit is ERC20LockBoxTokenHandlerSetup {
     vm.startPrank(s_bridgeCaller);
     deal(address(unsupportedToken), s_bridgeCaller, amount);
     unsupportedToken.approve(address(s_handler), amount);
-    vm.expectRevert(
-      abi.encodeWithSelector(ERC20LockBoxTokenHandler.UnsupportedToken.selector, address(unsupportedToken))
-    );
+    vm.expectRevert(abi.encodeWithSelector(TokenHandler.UnsupportedToken.selector, address(unsupportedToken)));
 
     s_handler.deposit(address(unsupportedToken), BRIDGE_CHAIN_SELECTOR, amount);
     vm.stopPrank();
