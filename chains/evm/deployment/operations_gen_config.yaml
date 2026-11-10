@@ -645,20 +645,20 @@ contracts:
       - name: getLockBox
         access: public
 
-  - contract_name: SiloedLockReleaseTokenPool
+  - contract_name: SiloedTokenPool
     version: "2.0.0"
     functions:
-      - name: configureLockBoxes
+      - name: configureTokenHandlers
         access: owner
-      - name: getLockBox
+      - name: getTokenHandler
         access: public
-      - name: getAllLockBoxConfigs
+      - name: getAllTokenHandlerConfigs
         access: public
 
   - contract_name: SiloedUSDCTokenPool
     version: "2.0.0"
     functions:
-      - name: configureLockBoxes
+      - name: configureTokenHandlers
         access: owner
       - name: applyAuthorizedCallerUpdates
         access: owner
