@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {SiloedLockReleaseTokenPool} from "../../../pools/SiloedLockReleaseTokenPool.sol";
+import {SiloedTokenPool} from "../../../pools/SiloedTokenPool.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
 import {CrossChainToken} from "../../../tokens/CrossChainToken.sol";
 import {BaseTest} from "../../BaseTest.t.sol";
 
 import {IERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/IERC20.sol";
 
-contract SiloedLockReleaseTokenPool_constructor is BaseTest {
+contract SiloedTokenPool_constructor is BaseTest {
   function test_constructor() public {
     CrossChainToken token = new CrossChainToken(
       BaseERC20.ConstructorParams({
@@ -24,11 +24,11 @@ contract SiloedLockReleaseTokenPool_constructor is BaseTest {
       OWNER
     );
 
-    SiloedLockReleaseTokenPool pool = new SiloedLockReleaseTokenPool(
+    SiloedTokenPool pool = new SiloedTokenPool(
       IERC20(address(token)), DEFAULT_TOKEN_DECIMALS, address(0), address(s_mockRMNRemote), address(s_sourceRouter)
     );
 
     assertEq(address(pool.getToken()), address(token));
-    assertEq(pool.typeAndVersion(), "SiloedLockReleaseTokenPool 2.0.0");
+    assertEq(pool.typeAndVersion(), "SiloedTokenPool 2.0.0");
   }
 }

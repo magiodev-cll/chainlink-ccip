@@ -6,9 +6,9 @@ import {SiloedUSDCTokenPoolSetup} from "./SiloedUSDCTokenPoolSetup.t.sol";
 
 contract SiloedUSDCTokenPool_excludeTokensFromBurn is SiloedUSDCTokenPoolSetup {
   function test_excludeTokensFromBurn() public {
-    // Provide some liquidity to the lockbox
+    // Provide some liquidity to the token handler
     uint256 amount = 1000e6;
-    deal(address(s_USDCToken), address(s_destLockBox), amount);
+    deal(address(s_USDCToken), address(s_destTokenHandler), amount);
 
     // Propose migration
     s_usdcTokenPool.proposeCCTPMigration(DEST_CHAIN_SELECTOR);

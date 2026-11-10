@@ -42,7 +42,7 @@ contract USDCTokenPoolProxy_lockOrBurn is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: s_lockReleasePool
+        siloedTokenPool: s_lockReleasePool
       })
     );
 
@@ -156,7 +156,7 @@ contract USDCTokenPoolProxy_lockOrBurn is USDCTokenPoolProxySetup {
         cctpV1Pool: address(0),
         cctpV2Pool: address(0),
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(s_lockReleasePool)
+        siloedTokenPool: address(s_lockReleasePool)
       })
     );
 
@@ -211,7 +211,7 @@ contract USDCTokenPoolProxy_lockOrBurn is USDCTokenPoolProxySetup {
         cctpV1Pool: address(0),
         cctpV2Pool: address(0),
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(s_lockReleasePool)
+        siloedTokenPool: address(s_lockReleasePool)
       })
     );
 
@@ -314,7 +314,7 @@ contract USDCTokenPoolProxy_lockOrBurn is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -407,7 +407,7 @@ contract USDCTokenPoolProxy_lockOrBurn is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -455,7 +455,7 @@ contract USDCTokenPoolProxy_lockOrBurn is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: address(0), // Remove CCTP_V2 pool
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: s_lockReleasePool
+        siloedTokenPool: s_lockReleasePool
       })
     );
 
@@ -539,7 +539,7 @@ contract USDCTokenPoolProxy_lockOrBurn is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 

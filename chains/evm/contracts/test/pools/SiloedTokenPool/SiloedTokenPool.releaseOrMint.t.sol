@@ -2,27 +2,27 @@
 pragma solidity ^0.8.24;
 
 import {Pool} from "../../../libraries/Pool.sol";
-import {SiloedLockReleaseTokenPoolSetup} from "./SiloedLockReleaseTokenPoolSetup.t.sol";
+import {SiloedTokenPoolSetup} from "./SiloedTokenPoolSetup.t.sol";
 
 import {IERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/IERC20.sol";
 
-contract SiloedLockReleaseTokenPool_releaseOrMint is SiloedLockReleaseTokenPoolSetup {
+contract SiloedTokenPool_releaseOrMint is SiloedTokenPoolSetup {
   function setUp() public override {
     super.setUp();
 
-    s_token.approve(address(s_lockBox), type(uint256).max);
-    IERC20(address(s_token)).approve(address(s_siloLockBox), type(uint256).max);
+    s_token.approve(address(s_tokenHandler), type(uint256).max);
+    s_token.approve(address(s_siloTokenHandler), type(uint256).max);
   }
 
   function test_ReleaseOrMint_SiloedChain() public {
     uint256 amount = 10e18;
 
-    deal(address(s_token), address(s_siloedLockReleaseTokenPool), amount);
+    deal(address(s_token), address(s_siloedTokenPool), amount);
 
     vm.startPrank(s_allowedOnRamp);
 
     // Lock funds so that they can be released without underflowing the internal accounting.
-    s_siloedLockReleaseTokenPool.lockOrBurn(
+    s_siloedTokenPool.lockOrBurn(
       Pool.LockOrBurnInV1({
         originalSender: STRANGER,
         receiver: bytes(""),
@@ -32,14 +32,14 @@ contract SiloedLockReleaseTokenPool_releaseOrMint is SiloedLockReleaseTokenPoolS
       })
     );
 
-    assertEq(s_token.balanceOf(address(s_siloLockBox)), amount);
+    assertEq(s_token.balanceOf(address(s_siloTokenHandler)), amount);
 
     vm.startPrank(s_allowedOffRamp);
 
     vm.expectEmit();
-    emit IERC20.Transfer(address(s_siloLockBox), OWNER, amount);
+    emit IERC20.Transfer(address(s_siloTokenHandler), OWNER, amount);
 
-    s_siloedLockReleaseTokenPool.releaseOrMint(
+    s_siloedTokenPool.releaseOrMint(
       Pool.ReleaseOrMintInV1({
         originalSender: bytes(""),
         receiver: OWNER,
@@ -52,17 +52,17 @@ contract SiloedLockReleaseTokenPool_releaseOrMint is SiloedLockReleaseTokenPoolS
       })
     );
 
-    assertEq(s_token.balanceOf(address(s_siloLockBox)), 0);
+    assertEq(s_token.balanceOf(address(s_siloTokenHandler)), 0);
   }
 
   function test_ReleaseOrMint_UnsiloedChain() public {
     uint256 amount = 10e18;
 
-    deal(address(s_token), address(s_siloedLockReleaseTokenPool), amount);
+    deal(address(s_token), address(s_siloedTokenPool), amount);
     vm.startPrank(s_allowedOnRamp);
 
     // Lock funds so they can be released later.
-    s_siloedLockReleaseTokenPool.lockOrBurn(
+    s_siloedTokenPool.lockOrBurn(
       Pool.LockOrBurnInV1({
         originalSender: STRANGER,
         receiver: bytes(""),
@@ -72,14 +72,14 @@ contract SiloedLockReleaseTokenPool_releaseOrMint is SiloedLockReleaseTokenPoolS
       })
     );
 
-    assertEq(s_token.balanceOf(address(s_lockBox)), amount);
+    assertEq(s_token.balanceOf(address(s_tokenHandler)), amount);
 
     vm.startPrank(s_allowedOffRamp);
 
     vm.expectEmit();
-    emit IERC20.Transfer(address(s_lockBox), OWNER, amount);
+    emit IERC20.Transfer(address(s_tokenHandler), OWNER, amount);
 
-    s_siloedLockReleaseTokenPool.releaseOrMint(
+    s_siloedTokenPool.releaseOrMint(
       Pool.ReleaseOrMintInV1({
         originalSender: bytes(""),
         receiver: OWNER,
@@ -92,18 +92,18 @@ contract SiloedLockReleaseTokenPool_releaseOrMint is SiloedLockReleaseTokenPoolS
       })
     );
 
-    assertEq(s_token.balanceOf(address(s_lockBox)), 0);
+    assertEq(s_token.balanceOf(address(s_tokenHandler)), 0);
   }
 
   function test_ReleaseOrMintV2_SiloedChain() public {
     uint256 amount = 10e18;
     address recipient = makeAddr("recipient");
 
-    deal(address(s_token), address(s_siloedLockReleaseTokenPool), amount);
+    deal(address(s_token), address(s_siloedTokenPool), amount);
 
     vm.startPrank(s_allowedOnRamp);
 
-    s_siloedLockReleaseTokenPool.lockOrBurn(
+    s_siloedTokenPool.lockOrBurn(
       Pool.LockOrBurnInV1({
         originalSender: STRANGER,
         receiver: bytes(""),
@@ -115,7 +115,7 @@ contract SiloedLockReleaseTokenPool_releaseOrMint is SiloedLockReleaseTokenPoolS
 
     vm.startPrank(s_allowedOffRamp);
 
-    Pool.ReleaseOrMintOutV1 memory output = s_siloedLockReleaseTokenPool.releaseOrMint(
+    Pool.ReleaseOrMintOutV1 memory output = s_siloedTokenPool.releaseOrMint(
       Pool.ReleaseOrMintInV1({
         originalSender: bytes(""),
         receiver: recipient,
@@ -131,6 +131,6 @@ contract SiloedLockReleaseTokenPool_releaseOrMint is SiloedLockReleaseTokenPoolS
 
     assertEq(output.destinationAmount, amount);
     assertEq(s_token.balanceOf(recipient), amount);
-    assertEq(s_token.balanceOf(address(s_siloLockBox)), 0);
+    assertEq(s_token.balanceOf(address(s_siloTokenHandler)), 0);
   }
 }

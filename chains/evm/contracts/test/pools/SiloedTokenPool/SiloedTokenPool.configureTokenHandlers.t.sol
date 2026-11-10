@@ -1,0 +1,118 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity ^0.8.24;
+
+import {ERC20LockBox} from "../../../pools/ERC20LockBox.sol";
+import {ERC20LockReleaseTokenHandler} from "../../../pools/ERC20LockReleaseTokenHandler.sol";
+import {SiloedTokenPool} from "../../../pools/SiloedTokenPool.sol";
+import {TokenPool} from "../../../pools/TokenPool.sol";
+import {BaseERC20} from "../../../tokens/BaseERC20.sol";
+import {CrossChainToken} from "../../../tokens/CrossChainToken.sol";
+import {BaseTest} from "../../BaseTest.t.sol";
+import {AuthorizedCallers} from "@chainlink/contracts/src/v0.8/shared/access/AuthorizedCallers.sol";
+
+import {IERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/IERC20.sol";
+
+contract SiloedTokenPool_configureTokenHandlers is BaseTest {
+  uint64 internal constant SILOED_CHAIN_SELECTOR = DEST_CHAIN_SELECTOR + 5;
+
+  SiloedTokenPool internal s_pool;
+  CrossChainToken internal s_token;
+
+  function setUp() public override {
+    super.setUp();
+    s_token = new CrossChainToken(
+      BaseERC20.ConstructorParams({
+        name: "TKN", symbol: "T", decimals: 18, maxSupply: 0, preMint: 0, preMintRecipient: address(0), ccipAdmin: OWNER
+      }),
+      OWNER,
+      OWNER
+    );
+    deal(address(s_token), OWNER, type(uint256).max);
+
+    s_pool = new SiloedTokenPool(
+      IERC20(address(s_token)), DEFAULT_TOKEN_DECIMALS, address(0), address(s_mockRMNRemote), address(s_sourceRouter)
+    );
+
+    // Basic router config to allow on/off ramps.
+    _setMockRouterOnRamp(address(s_sourceRouter), SILOED_CHAIN_SELECTOR, address(123));
+    _setMockRouterOffRamp(address(s_sourceRouter), SILOED_CHAIN_SELECTOR, address(234), true);
+
+    // Register the siloed chain as supported.
+    TokenPool.ChainUpdate[] memory chainUpdates = new TokenPool.ChainUpdate[](1);
+    bytes[] memory remotePoolAddresses = new bytes[](1);
+    remotePoolAddresses[0] = abi.encode(address(999));
+    chainUpdates[0] = TokenPool.ChainUpdate({
+      remoteChainSelector: SILOED_CHAIN_SELECTOR,
+      remotePoolAddresses: remotePoolAddresses,
+      remoteTokenAddress: abi.encode(address(2)),
+      outboundRateLimiterConfig: _getOutboundRateLimiterConfig(),
+      inboundRateLimiterConfig: _getInboundRateLimiterConfig()
+    });
+    s_pool.applyChainUpdates(new uint64[](0), chainUpdates);
+  }
+
+  function test_configureTokenHandlers() public {
+    ERC20LockReleaseTokenHandler tokenHandler = new ERC20LockReleaseTokenHandler(address(s_token));
+    tokenHandler.setSelectorAllowed(SILOED_CHAIN_SELECTOR, true);
+
+    SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](1);
+    tokenHandlers[0] = SiloedTokenPool.TokenHandlerConfig({
+      remoteChainSelector: SILOED_CHAIN_SELECTOR, tokenHandler: address(tokenHandler)
+    });
+
+    vm.expectEmit();
+    emit SiloedTokenPool.TokenHandlerConfigured(SILOED_CHAIN_SELECTOR, address(tokenHandler));
+    s_pool.configureTokenHandlers(tokenHandlers);
+
+    assertEq(address(s_pool.getTokenHandler(SILOED_CHAIN_SELECTOR)), address(tokenHandler));
+  }
+
+  function test_configureTokenHandlers_RevertWhen_SelectorNotAllowed() public {
+    ERC20LockReleaseTokenHandler tokenHandler = new ERC20LockReleaseTokenHandler(address(s_token));
+
+    SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](1);
+    tokenHandlers[0] = SiloedTokenPool.TokenHandlerConfig({
+      remoteChainSelector: SILOED_CHAIN_SELECTOR, tokenHandler: address(tokenHandler)
+    });
+
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        SiloedTokenPool.TokenHandlerSelectorNotAllowed.selector, SILOED_CHAIN_SELECTOR, address(tokenHandler)
+      )
+    );
+    s_pool.configureTokenHandlers(tokenHandlers);
+  }
+
+  function test_configureTokenHandlers_RevertWhen_LegacyLockBox() public {
+    ERC20LockBox legacyLockBox = new ERC20LockBox(address(s_token));
+
+    SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](1);
+    tokenHandlers[0] = SiloedTokenPool.TokenHandlerConfig({
+      remoteChainSelector: SILOED_CHAIN_SELECTOR, tokenHandler: address(legacyLockBox)
+    });
+
+    vm.expectRevert();
+    s_pool.configureTokenHandlers(tokenHandlers);
+  }
+
+  function test_configureTokenHandlers_RevertWhen_InvalidToken() public {
+    address wrongToken = address(999);
+    ERC20LockReleaseTokenHandler invalidTokenHandler = new ERC20LockReleaseTokenHandler(wrongToken);
+    SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](1);
+    tokenHandlers[0] = SiloedTokenPool.TokenHandlerConfig({
+      remoteChainSelector: SILOED_CHAIN_SELECTOR, tokenHandler: address(invalidTokenHandler)
+    });
+
+    vm.expectRevert(abi.encodeWithSelector(TokenPool.InvalidToken.selector, address(s_token)));
+    s_pool.configureTokenHandlers(tokenHandlers);
+  }
+
+  function test_configureTokenHandlers_RevertWhen_ZeroAddressInvalid() public {
+    SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](1);
+    tokenHandlers[0] =
+      SiloedTokenPool.TokenHandlerConfig({remoteChainSelector: SILOED_CHAIN_SELECTOR, tokenHandler: address(0)});
+
+    vm.expectRevert(abi.encodeWithSelector(TokenPool.ZeroAddressInvalid.selector));
+    s_pool.configureTokenHandlers(tokenHandlers);
+  }
+}

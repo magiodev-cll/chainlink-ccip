@@ -32,7 +32,7 @@ contract USDCTokenPoolProxy_getRemotePools is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 

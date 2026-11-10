@@ -84,7 +84,7 @@ function getOptimizations() {
       "CrossChainPoolToken")
         optimize_runs_override="--optimizer-runs $OPTIMIZE_RUNS_LARGE_POOL"
         ;;
-      "SiloedLockReleaseTokenPool")
+      "SiloedTokenPool")
         optimize_runs_override="--optimizer-runs $OPTIMIZE_RUNS_LARGE_POOL"
         ;;
       "ConnectionPolicyStore")
@@ -131,8 +131,11 @@ compileContract pools/BurnFromMintTokenPool
 compileContract pools/BurnWithFromMintTokenPool
 compileContract pools/BurnToAddressMintTokenPool
 compileContract pools/TokenPool
-compileContract pools/SiloedLockReleaseTokenPool
+compileContract pools/SiloedTokenPool
 compileContract pools/ERC20LockBox
+compileContract pools/ERC20LockReleaseTokenHandler
+compileContract pools/ERC20BurnMintTokenHandler
+compileContract pools/ERC20ExternalMinterTokenHandler
 compileContract pools/USDC/CCTPMessageTransmitterProxy
 compileContract pools/USDC/SiloedUSDCTokenPool
 compileContract pools/USDC/USDCTokenPoolProxy

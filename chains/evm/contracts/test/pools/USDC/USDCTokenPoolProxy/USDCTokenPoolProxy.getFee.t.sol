@@ -38,7 +38,7 @@ contract USDCTokenPoolProxy_getFee is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -60,7 +60,7 @@ contract USDCTokenPoolProxy_getFee is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: s_lockReleasePool
+        siloedTokenPool: s_lockReleasePool
       })
     );
 

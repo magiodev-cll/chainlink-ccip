@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {ERC20LockBox} from "../../../../pools/ERC20LockBox.sol";
-import {SiloedLockReleaseTokenPool} from "../../../../pools/SiloedLockReleaseTokenPool.sol";
+import {ERC20LockReleaseTokenHandler} from "../../../../pools/ERC20LockReleaseTokenHandler.sol";
+import {SiloedTokenPool} from "../../../../pools/SiloedTokenPool.sol";
 import {SiloedUSDCTokenPool} from "../../../../pools/USDC/SiloedUSDCTokenPool.sol";
 import {CrossChainToken} from "../../../../tokens/CrossChainToken.sol";
 import {USDCSetup} from "../USDCSetup.t.sol";
@@ -12,16 +12,14 @@ contract SiloedUSDCTokenPoolSetup is USDCSetup {
   SiloedUSDCTokenPool internal s_usdcTokenPool;
   SiloedUSDCTokenPool internal s_usdcTokenPoolTransferLiquidity;
 
-  ERC20LockBox internal s_lockBox;
-  ERC20LockBox internal s_sourceLockBox;
-  ERC20LockBox internal s_destLockBox;
+  ERC20LockReleaseTokenHandler internal s_sourceTokenHandler;
+  ERC20LockReleaseTokenHandler internal s_destTokenHandler;
 
   function setUp() public virtual override {
     super.setUp();
 
-    s_lockBox = new ERC20LockBox(address(s_USDCToken));
-    s_sourceLockBox = new ERC20LockBox(address(s_USDCToken));
-    s_destLockBox = new ERC20LockBox(address(s_USDCToken));
+    s_sourceTokenHandler = new ERC20LockReleaseTokenHandler(address(s_USDCToken));
+    s_destTokenHandler = new ERC20LockReleaseTokenHandler(address(s_USDCToken));
 
     s_usdcTokenPool = new SiloedUSDCTokenPool(
       s_USDCToken,
@@ -69,31 +67,29 @@ contract SiloedUSDCTokenPoolSetup is USDCSetup {
 
     _poolApplyChainUpdates(address(s_usdcTokenPoolTransferLiquidity));
 
-    // Allow both pools to interact with the lockboxes.
+    // Allow both pools to interact with the token handlers.
     address[] memory allowedCallers = new address[](2);
     allowedCallers[0] = address(s_usdcTokenPool);
     allowedCallers[1] = address(s_usdcTokenPoolTransferLiquidity);
-    ERC20LockBox(s_lockBox)
-      .applyAuthorizedCallerUpdates(
-        AuthorizedCallers.AuthorizedCallerArgs({addedCallers: allowedCallers, removedCallers: new address[](0)})
-      );
-    ERC20LockBox(s_sourceLockBox)
-      .applyAuthorizedCallerUpdates(
-        AuthorizedCallers.AuthorizedCallerArgs({addedCallers: allowedCallers, removedCallers: new address[](0)})
-      );
-    ERC20LockBox(s_destLockBox)
-      .applyAuthorizedCallerUpdates(
-        AuthorizedCallers.AuthorizedCallerArgs({addedCallers: allowedCallers, removedCallers: new address[](0)})
-      );
 
-    SiloedLockReleaseTokenPool.LockBoxConfig[] memory lockBoxes = new SiloedLockReleaseTokenPool.LockBoxConfig[](2);
-    lockBoxes[0] = SiloedLockReleaseTokenPool.LockBoxConfig({
-      remoteChainSelector: SOURCE_CHAIN_SELECTOR, lockBox: address(s_sourceLockBox)
+    s_sourceTokenHandler.setSelectorAllowed(SOURCE_CHAIN_SELECTOR, true);
+    s_destTokenHandler.setSelectorAllowed(DEST_CHAIN_SELECTOR, true);
+
+    s_sourceTokenHandler.applyAuthorizedCallerUpdates(
+      AuthorizedCallers.AuthorizedCallerArgs({addedCallers: allowedCallers, removedCallers: new address[](0)})
+    );
+    s_destTokenHandler.applyAuthorizedCallerUpdates(
+      AuthorizedCallers.AuthorizedCallerArgs({addedCallers: allowedCallers, removedCallers: new address[](0)})
+    );
+
+    SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](2);
+    tokenHandlers[0] = SiloedTokenPool.TokenHandlerConfig({
+      remoteChainSelector: SOURCE_CHAIN_SELECTOR, tokenHandler: address(s_sourceTokenHandler)
     });
-    lockBoxes[1] = SiloedLockReleaseTokenPool.LockBoxConfig({
-      remoteChainSelector: DEST_CHAIN_SELECTOR, lockBox: address(s_destLockBox)
+    tokenHandlers[1] = SiloedTokenPool.TokenHandlerConfig({
+      remoteChainSelector: DEST_CHAIN_SELECTOR, tokenHandler: address(s_destTokenHandler)
     });
-    s_usdcTokenPool.configureLockBoxes(lockBoxes);
-    s_usdcTokenPoolTransferLiquidity.configureLockBoxes(lockBoxes);
+    s_usdcTokenPool.configureTokenHandlers(tokenHandlers);
+    s_usdcTokenPoolTransferLiquidity.configureTokenHandlers(tokenHandlers);
   }
 }
