@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
+import {ERC20LockBox} from "../../../pools/ERC20LockBox.sol";
 import {ERC20LockBoxTokenHandler} from "../../../pools/ERC20LockBoxTokenHandler.sol";
 import {SiloedTokenPool} from "../../../pools/SiloedTokenPool.sol";
 import {TokenPool} from "../../../pools/TokenPool.sol";
@@ -79,6 +80,18 @@ contract SiloedTokenPool_configureTokenHandlers is BaseTest {
         SiloedTokenPool.TokenHandlerSelectorNotAllowed.selector, SILOED_CHAIN_SELECTOR, address(tokenHandler)
       )
     );
+    s_pool.configureTokenHandlers(tokenHandlers);
+  }
+
+  function test_configureTokenHandlers_RevertWhen_LegacyLockBox() public {
+    ERC20LockBox legacyLockBox = new ERC20LockBox(address(s_token));
+
+    SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](1);
+    tokenHandlers[0] = SiloedTokenPool.TokenHandlerConfig({
+      remoteChainSelector: SILOED_CHAIN_SELECTOR, tokenHandler: address(legacyLockBox)
+    });
+
+    vm.expectRevert();
     s_pool.configureTokenHandlers(tokenHandlers);
   }
 
