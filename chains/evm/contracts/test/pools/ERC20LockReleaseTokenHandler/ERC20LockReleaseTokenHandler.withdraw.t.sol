@@ -40,6 +40,48 @@ contract ERC20LockReleaseTokenHandler_withdraw is ERC20LockReleaseTokenHandlerSe
     assertEq(s_token.balanceOf(address(s_handler)), 0);
   }
 
+  function testFuzz_withdraw(
+    uint256 depositAmount,
+    uint256 withdrawAmount
+  ) public {
+    depositAmount = bound(depositAmount, 1, 1_000_000e18);
+    withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+    _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, depositAmount);
+
+    vm.prank(s_bridgeCaller);
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, withdrawAmount, s_recipient);
+
+    assertEq(s_token.balanceOf(s_recipient), withdrawAmount);
+    assertEq(s_token.balanceOf(address(s_handler)), depositAmount - withdrawAmount);
+  }
+
+  function test_withdraw_PartialAmount() public {
+    uint256 depositAmount = 1_000e18;
+    uint256 withdrawAmount = 400e18;
+    _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, depositAmount);
+
+    vm.prank(s_bridgeCaller);
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, withdrawAmount, s_recipient);
+
+    assertEq(s_token.balanceOf(s_recipient), withdrawAmount);
+    assertEq(s_token.balanceOf(address(s_handler)), depositAmount - withdrawAmount);
+  }
+
+  function test_withdraw_MultipleWithdrawals() public {
+    address recipient1 = makeAddr("recipient1");
+    address recipient2 = makeAddr("recipient2");
+    _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, 1_000e18);
+
+    vm.startPrank(s_bridgeCaller);
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 300e18, recipient1);
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 250e18, recipient2);
+    vm.stopPrank();
+
+    assertEq(s_token.balanceOf(recipient1), 300e18);
+    assertEq(s_token.balanceOf(recipient2), 250e18);
+    assertEq(s_token.balanceOf(address(s_handler)), 450e18);
+  }
+
   function test_withdraw_RevertWhen_BridgeCallerUsesMaxAmount() public {
     _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, 1_000e18);
 

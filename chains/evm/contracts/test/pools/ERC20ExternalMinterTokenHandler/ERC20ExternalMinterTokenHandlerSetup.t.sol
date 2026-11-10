@@ -85,4 +85,15 @@ contract ERC20ExternalMinterTokenHandlerSetup is BaseTest {
     s_token.mint(s_bridgeCaller, 10_000e18);
     s_token.mint(s_adminCaller, 10_000e18);
   }
+
+  function _deposit(
+    address caller,
+    uint64 remoteChainSelector,
+    uint256 amount
+  ) internal {
+    vm.startPrank(caller);
+    s_token.approve(address(s_handler), amount);
+    s_handler.deposit(address(s_token), remoteChainSelector, amount);
+    vm.stopPrank();
+  }
 }

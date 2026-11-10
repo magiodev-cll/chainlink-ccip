@@ -90,6 +90,29 @@ contract ERC20LockReleaseTokenHandler_deposit is ERC20LockReleaseTokenHandlerSet
     vm.stopPrank();
   }
 
+  function testFuzz_deposit_Success(
+    uint256 amount
+  ) public {
+    amount = bound(amount, 1, 1_000_000e18);
+
+    vm.startPrank(s_bridgeCaller);
+    s_token.approve(address(s_handler), amount);
+    s_handler.deposit(address(s_token), BRIDGE_CHAIN_SELECTOR, amount);
+    vm.stopPrank();
+
+    assertEq(s_token.balanceOf(address(s_handler)), amount);
+  }
+
+  function test_deposit_MultipleDeposits() public {
+    uint256 amount1 = 400e18;
+    uint256 amount2 = 600e18;
+
+    _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, amount1);
+    _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, amount2);
+
+    assertEq(s_token.balanceOf(address(s_handler)), amount1 + amount2);
+  }
+
   function test_deposit_RevertWhen_UnsupportedToken() public {
     uint256 amount = 1_000e18;
     CrossChainToken unsupportedToken = new CrossChainToken(

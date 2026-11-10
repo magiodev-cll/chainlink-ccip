@@ -83,6 +83,34 @@ contract ERC20ExternalMinterTokenHandler_deposit is ERC20ExternalMinterTokenHand
     vm.stopPrank();
   }
 
+  function testFuzz_deposit_BurnsThroughMinter(
+    uint256 amount
+  ) public {
+    amount = bound(amount, 1, 10_000e18);
+    uint256 supplyBefore = s_token.totalSupply();
+
+    _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, amount);
+
+    assertEq(s_token.balanceOf(s_bridgeCaller), 10_000e18 - amount);
+    assertEq(s_token.totalSupply(), supplyBefore - amount);
+    assertEq(s_token.balanceOf(address(s_handler)), 0);
+    assertEq(s_token.balanceOf(address(s_minter)), 0);
+    assertEq(s_token.allowance(address(s_handler), address(s_minter)), 0);
+  }
+
+  function test_deposit_MultipleBurns() public {
+    uint256 amount1 = 400e18;
+    uint256 amount2 = 600e18;
+    uint256 supplyBefore = s_token.totalSupply();
+
+    _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, amount1);
+    _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, amount2);
+
+    assertEq(s_token.totalSupply(), supplyBefore - amount1 - amount2);
+    assertEq(s_token.balanceOf(address(s_handler)), 0);
+    assertEq(s_token.balanceOf(address(s_minter)), 0);
+  }
+
   function test_deposit_RevertWhen_UnsupportedToken() public {
     vm.startPrank(s_bridgeCaller);
     vm.expectRevert(abi.encodeWithSelector(TokenHandler.UnsupportedToken.selector, address(1)));
