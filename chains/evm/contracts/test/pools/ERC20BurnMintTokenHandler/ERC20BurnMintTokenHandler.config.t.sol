@@ -51,6 +51,20 @@ contract ERC20BurnMintTokenHandler_config is ERC20BurnMintTokenHandlerSetup {
     s_handler.setSelectorAllowed(OTHER_CHAIN_SELECTOR, true);
   }
 
+  function test_setSelectorAllowed_RevertWhen_BothCapsZero() public {
+    s_handler.setSelectorCaps(OTHER_CHAIN_SELECTOR, 0, 0);
+
+    vm.expectRevert(abi.encodeWithSelector(BurnMintTokenHandlerBase.CapsNotSet.selector, OTHER_CHAIN_SELECTOR));
+    s_handler.setSelectorAllowed(OTHER_CHAIN_SELECTOR, true);
+  }
+
+  function test_setSelectorAllowed_AllowsSingleSidedCaps() public {
+    s_handler.setSelectorCaps(OTHER_CHAIN_SELECTOR, 0, 100e18);
+    s_handler.setSelectorAllowed(OTHER_CHAIN_SELECTOR, true);
+
+    assertTrue(s_handler.isSelectorAllowed(OTHER_CHAIN_SELECTOR));
+  }
+
   function test_getSelectorAccounting() public {
     _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, 100e18);
 
@@ -70,8 +84,6 @@ contract ERC20BurnMintTokenHandler_config is ERC20BurnMintTokenHandlerSetup {
     s_handler.setSelectorAllowed(OTHER_CHAIN_SELECTOR, true);
 
     _deposit(s_bridgeCaller, OTHER_CHAIN_SELECTOR, 100e18);
-    vm.prank(s_bridgeCaller);
-    s_handler.withdraw(address(s_token), OTHER_CHAIN_SELECTOR, 100e18, s_recipient);
 
     vm.startPrank(s_bridgeCaller);
     s_token.approve(address(s_handler), 1);
@@ -79,12 +91,12 @@ contract ERC20BurnMintTokenHandler_config is ERC20BurnMintTokenHandlerSetup {
       abi.encodeWithSelector(BurnMintTokenHandlerBase.BurnCapExceeded.selector, OTHER_CHAIN_SELECTOR, 1, 0)
     );
     s_handler.deposit(address(s_token), OTHER_CHAIN_SELECTOR, 1);
-    vm.expectRevert(
-      abi.encodeWithSelector(BurnMintTokenHandlerBase.MintCapExceeded.selector, OTHER_CHAIN_SELECTOR, 1, 0)
-    );
-    s_handler.withdraw(address(s_token), OTHER_CHAIN_SELECTOR, 1, s_recipient);
     vm.stopPrank();
 
+    vm.prank(s_bridgeCaller);
+    s_handler.withdraw(address(s_token), OTHER_CHAIN_SELECTOR, 100e18, s_recipient);
+
+    _deposit(s_bridgeCaller, OTHER_CHAIN_SELECTOR, 1e18);
     _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, 10e18);
     vm.prank(s_bridgeCaller);
     s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 10e18, s_recipient);
@@ -92,7 +104,7 @@ contract ERC20BurnMintTokenHandler_config is ERC20BurnMintTokenHandlerSetup {
     (uint256 mintedOther, uint256 burnedOther,,) = s_handler.getSelectorAccounting(OTHER_CHAIN_SELECTOR);
     (uint256 mintedBridge, uint256 burnedBridge,,) = s_handler.getSelectorAccounting(BRIDGE_CHAIN_SELECTOR);
     assertEq(mintedOther, 100e18);
-    assertEq(burnedOther, 100e18);
+    assertEq(burnedOther, 101e18);
     assertEq(mintedBridge, 10e18);
     assertEq(burnedBridge, 10e18);
   }

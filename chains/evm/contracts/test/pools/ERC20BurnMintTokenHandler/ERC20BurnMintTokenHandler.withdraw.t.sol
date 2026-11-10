@@ -75,18 +75,28 @@ contract ERC20BurnMintTokenHandler_withdraw is ERC20BurnMintTokenHandlerSetup {
     vm.stopPrank();
   }
 
-  function test_withdraw_MintCapIsGrossNotNet() public {
+  function test_withdraw_MintCapFreesAfterBurn() public {
     s_handler.setSelectorCaps(BRIDGE_CHAIN_SELECTOR, 100e18, type(uint256).max);
 
     vm.startPrank(s_bridgeCaller);
     s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 100e18, s_recipient);
     s_token.approve(address(s_handler), 100e18);
     s_handler.deposit(address(s_token), BRIDGE_CHAIN_SELECTOR, 100e18);
-    vm.expectRevert(
-      abi.encodeWithSelector(BurnMintTokenHandlerBase.MintCapExceeded.selector, BRIDGE_CHAIN_SELECTOR, 1, 0)
-    );
-    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 1, s_recipient);
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 100e18, s_recipient);
     vm.stopPrank();
+
+    assertEq(s_token.balanceOf(s_recipient), 200e18);
+  }
+
+  function test_withdraw_ZeroMintCapCreditedByBurn() public {
+    s_handler.setSelectorCaps(BRIDGE_CHAIN_SELECTOR, 0, 100e18);
+
+    _deposit(s_bridgeCaller, BRIDGE_CHAIN_SELECTOR, 100e18);
+
+    vm.prank(s_bridgeCaller);
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 100e18, s_recipient);
+
+    assertEq(s_token.balanceOf(s_recipient), 100e18);
   }
 
   function test_withdraw_AdminSelectorIgnoresCaps() public {
