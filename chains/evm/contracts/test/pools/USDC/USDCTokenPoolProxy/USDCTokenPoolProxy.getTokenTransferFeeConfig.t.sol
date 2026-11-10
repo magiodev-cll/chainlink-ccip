@@ -33,8 +33,8 @@ contract USDCTokenPoolProxy_getTokenTransferFeeConfig is USDCTokenPoolProxySetup
   }
 
   function test_getTokenTransferFeeConfig_LockRelease() public {
-    // Set up siloed lock release pool
-    address siloedPool = makeAddr("siloedLockReleasePool");
+    // Set up siloed token pool
+    address siloedPool = makeAddr("siloedTokenPool");
     _enableERC165InterfaceChecks(siloedPool, type(IPoolV1).interfaceId);
 
     s_usdcTokenPoolProxy.updatePoolAddresses(
@@ -42,7 +42,7 @@ contract USDCTokenPoolProxy_getTokenTransferFeeConfig is USDCTokenPoolProxySetup
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: siloedPool
+        siloedTokenPool: siloedPool
       })
     );
 
@@ -123,7 +123,7 @@ contract USDCTokenPoolProxy_getTokenTransferFeeConfig is USDCTokenPoolProxySetup
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -139,7 +139,7 @@ contract USDCTokenPoolProxy_getTokenTransferFeeConfig is USDCTokenPoolProxySetup
 
   function test_getTokenTransferFeeConfig_RevertWhen_MustSetPoolForMechanism_LockRelease() public {
     // First set the pool so we can configure the mechanism
-    address siloedPool = makeAddr("siloedLockReleasePool");
+    address siloedPool = makeAddr("siloedTokenPool");
     _enableERC165InterfaceChecks(siloedPool, type(IPoolV1).interfaceId);
 
     s_usdcTokenPoolProxy.updatePoolAddresses(
@@ -147,7 +147,7 @@ contract USDCTokenPoolProxy_getTokenTransferFeeConfig is USDCTokenPoolProxySetup
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: siloedPool
+        siloedTokenPool: siloedPool
       })
     );
 
@@ -165,7 +165,7 @@ contract USDCTokenPoolProxy_getTokenTransferFeeConfig is USDCTokenPoolProxySetup
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 

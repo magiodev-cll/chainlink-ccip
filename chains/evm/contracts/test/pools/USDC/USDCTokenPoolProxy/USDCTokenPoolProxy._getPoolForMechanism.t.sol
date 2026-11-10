@@ -36,7 +36,7 @@ contract USDCTokenPoolProxy__getPoolForMechanism is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       }),
       address(s_router),
       address(s_cctpVerifier)
@@ -91,7 +91,7 @@ contract USDCTokenPoolProxy__getPoolForMechanism is USDCTokenPoolProxySetup {
   }
 
   function test_getPoolForMechanism_LockRelease() public {
-    address siloedPool = makeAddr("siloedLockReleasePool");
+    address siloedPool = makeAddr("siloedTokenPool");
     _enableERC165InterfaceChecks(siloedPool, type(IPoolV1).interfaceId);
 
     s_helper.updatePoolAddresses(
@@ -99,7 +99,7 @@ contract USDCTokenPoolProxy__getPoolForMechanism is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: siloedPool
+        siloedTokenPool: siloedPool
       })
     );
 
@@ -134,7 +134,7 @@ contract USDCTokenPoolProxy__getPoolForMechanism is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -157,7 +157,7 @@ contract USDCTokenPoolProxy__getPoolForMechanism is USDCTokenPoolProxySetup {
         cctpV1Pool: address(0),
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -168,7 +168,7 @@ contract USDCTokenPoolProxy__getPoolForMechanism is USDCTokenPoolProxySetup {
         cctpV1Pool: s_cctpV1Pool,
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -185,7 +185,7 @@ contract USDCTokenPoolProxy__getPoolForMechanism is USDCTokenPoolProxySetup {
         cctpV1Pool: address(0),
         cctpV2Pool: s_cctpV2Pool,
         cctpV2PoolWithCCV: s_cctpThroughCCVTokenPool,
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 

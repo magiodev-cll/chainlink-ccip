@@ -22,7 +22,7 @@ contract USDCTokenPoolProxy_updatePoolAddresses is USDCTokenPoolProxySetup {
       cctpV1Pool: s_newCctpV1Pool,
       cctpV2Pool: s_newCctpV2Pool,
       cctpV2PoolWithCCV: s_newCctpV2PoolWithCCV,
-      siloedLockReleasePool: address(0)
+      siloedTokenPool: address(0)
     });
 
     vm.expectEmit();
@@ -44,7 +44,7 @@ contract USDCTokenPoolProxy_updatePoolAddresses is USDCTokenPoolProxySetup {
         cctpV1Pool: s_newCctpV1Pool,
         cctpV2Pool: address(0),
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -55,7 +55,7 @@ contract USDCTokenPoolProxy_updatePoolAddresses is USDCTokenPoolProxySetup {
         cctpV1Pool: s_newCctpV1Pool,
         cctpV2Pool: address(0),
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -69,7 +69,7 @@ contract USDCTokenPoolProxy_updatePoolAddresses is USDCTokenPoolProxySetup {
         cctpV1Pool: address(0),
         cctpV2Pool: s_newCctpV2Pool,
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -80,7 +80,7 @@ contract USDCTokenPoolProxy_updatePoolAddresses is USDCTokenPoolProxySetup {
         cctpV1Pool: address(0),
         cctpV2Pool: s_newCctpV2Pool,
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -94,7 +94,7 @@ contract USDCTokenPoolProxy_updatePoolAddresses is USDCTokenPoolProxySetup {
         cctpV1Pool: address(0),
         cctpV2Pool: address(0),
         cctpV2PoolWithCCV: s_newCctpV2PoolWithCCV,
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
 
@@ -105,7 +105,7 @@ contract USDCTokenPoolProxy_updatePoolAddresses is USDCTokenPoolProxySetup {
         cctpV1Pool: address(0),
         cctpV2Pool: address(0),
         cctpV2PoolWithCCV: s_newCctpV2PoolWithCCV,
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       })
     );
   }
@@ -117,22 +117,22 @@ contract USDCTokenPoolProxy_updatePoolAddresses is USDCTokenPoolProxySetup {
     vm.expectRevert(USDCTokenPoolProxy.PoolAddressCannotBeSelf.selector);
     s_usdcTokenPoolProxy.updatePoolAddresses(
       USDCTokenPoolProxy.PoolAddresses({
-        cctpV1Pool: proxyAddr, cctpV2Pool: address(0), cctpV2PoolWithCCV: address(0), siloedLockReleasePool: address(0)
+        cctpV1Pool: proxyAddr, cctpV2Pool: address(0), cctpV2PoolWithCCV: address(0), siloedTokenPool: address(0)
       })
     );
   }
 
-  function test_updatePoolAddresses_RevertWhen_TokenPoolUnsupported_SiloedLockReleasePoolDoesNotSupportIPoolV1OrV2()
+  function test_updatePoolAddresses_RevertWhen_TokenPoolUnsupported_SiloedTokenPoolDoesNotSupportIPoolV1OrV2()
     public
   {
-    // Test when siloedLockReleasePool doesn't support either IPoolV1 or IPoolV2.
+    // Test when siloedTokenPool doesn't support either IPoolV1 or IPoolV2.
     vm.expectRevert(abi.encodeWithSelector(USDCTokenPoolProxy.TokenPoolUnsupported.selector, s_newLockReleasePool));
     s_usdcTokenPoolProxy.updatePoolAddresses(
       USDCTokenPoolProxy.PoolAddresses({
         cctpV1Pool: address(0),
         cctpV2Pool: address(0),
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: s_newLockReleasePool
+        siloedTokenPool: s_newLockReleasePool
       })
     );
 
@@ -144,10 +144,10 @@ contract USDCTokenPoolProxy_updatePoolAddresses is USDCTokenPoolProxySetup {
         cctpV1Pool: address(0),
         cctpV2Pool: address(0),
         cctpV2PoolWithCCV: address(0),
-        siloedLockReleasePool: s_newLockReleasePool
+        siloedTokenPool: s_newLockReleasePool
       })
     );
 
-    assertEq(s_usdcTokenPoolProxy.getPools().siloedLockReleasePool, s_newLockReleasePool);
+    assertEq(s_usdcTokenPoolProxy.getPools().siloedTokenPool, s_newLockReleasePool);
   }
 }

@@ -44,7 +44,7 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
     address cctpV1Pool;
     address cctpV2Pool;
     address cctpV2PoolWithCCV;
-    address siloedLockReleasePool;
+    address siloedTokenPool;
   }
 
   enum LockOrBurnMechanism {
@@ -72,11 +72,11 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
   ///     ├──→ CCTPV1Pool → MessageTransmitterProxy/TokenMessenger V1 → CCTPV1
   ///     ├──→ CCTPV2Pool → MessageTransmitterProxy/TokenMessenger V2 → CCTPV2
   ///     ├──→ cctpV2PoolWithCCV → CCTPVerifier → MessageTransmitterProxy/TokenMessenger V2 → CCTPV2
-  ///     └──→ siloedLockReleasePool → ERC20LockBox
+  ///     └──→ siloedTokenPool → TokenHandler
   address internal s_cctpV1Pool;
   address internal s_cctpV2Pool;
   address internal s_cctpV2PoolWithCCV;
-  address internal s_siloedLockReleasePool;
+  address internal s_siloedTokenPool;
 
   /// @notice The address that receives withdrawn fee tokens.
   address internal s_feeAggregator;
@@ -143,7 +143,7 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
     } else if (mechanism == LockOrBurnMechanism.CCTP_V1) {
       pool = s_cctpV1Pool;
     } else if (mechanism == LockOrBurnMechanism.LOCK_RELEASE) {
-      pool = s_siloedLockReleasePool;
+      pool = s_siloedTokenPool;
     } else {
       revert InvalidLockOrBurnMechanism(mechanism);
     }
@@ -196,7 +196,7 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
       }
       i_token.safeTransfer(verifierImpl, lockOrBurnIn.amount);
     } else if (mechanism == LockOrBurnMechanism.LOCK_RELEASE) {
-      pool = s_siloedLockReleasePool;
+      pool = s_siloedTokenPool;
       if (pool == address(0)) {
         revert NoLockOrBurnMechanismSet(lockOrBurnIn.remoteChainSelector);
       }
@@ -221,7 +221,7 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
     bytes4 version = _getVersion(releaseOrMintIn.sourcePoolData);
 
     if (version == USDCSourcePoolDataCodec.LOCK_RELEASE_FLAG) {
-      return IPoolV1(s_siloedLockReleasePool).releaseOrMint(releaseOrMintIn);
+      return IPoolV1(s_siloedTokenPool).releaseOrMint(releaseOrMintIn);
     }
     if (version == USDCSourcePoolDataCodec.CCTP_VERSION_2_TAG) {
       return IPoolV1(s_cctpV2Pool).releaseOrMint(releaseOrMintIn);
@@ -259,7 +259,7 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
 
     // If the source pool data is the lock release flag, use the lock release pool set for the remote chain selector.
     if (version == USDCSourcePoolDataCodec.LOCK_RELEASE_FLAG) {
-      return IPoolV2(s_siloedLockReleasePool).releaseOrMint(releaseOrMintIn, requestedFinalityConfig);
+      return IPoolV2(s_siloedTokenPool).releaseOrMint(releaseOrMintIn, requestedFinalityConfig);
     }
     if (version == USDCSourcePoolDataCodec.CCTP_VERSION_2_CCV_TAG) {
       return IPoolV2(s_cctpV2PoolWithCCV).releaseOrMint(releaseOrMintIn, requestedFinalityConfig);
@@ -308,17 +308,16 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
     }
 
     if (
-      pools.siloedLockReleasePool != address(0)
-        && !pools.siloedLockReleasePool.supportsInterface(type(IPoolV1).interfaceId)
-        && !pools.siloedLockReleasePool.supportsInterface(type(IPoolV2).interfaceId)
+      pools.siloedTokenPool != address(0) && !pools.siloedTokenPool.supportsInterface(type(IPoolV1).interfaceId)
+        && !pools.siloedTokenPool.supportsInterface(type(IPoolV2).interfaceId)
     ) {
-      revert TokenPoolUnsupported(pools.siloedLockReleasePool);
+      revert TokenPoolUnsupported(pools.siloedTokenPool);
     }
 
     // Disallow setting address(this) as a pool address.
     if (
       pools.cctpV1Pool == address(this) || pools.cctpV2Pool == address(this) || pools.cctpV2PoolWithCCV == address(this)
-        || pools.siloedLockReleasePool == address(this)
+        || pools.siloedTokenPool == address(this)
     ) {
       revert PoolAddressCannotBeSelf();
     }
@@ -326,7 +325,7 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
     s_cctpV1Pool = pools.cctpV1Pool;
     s_cctpV2Pool = pools.cctpV2Pool;
     s_cctpV2PoolWithCCV = pools.cctpV2PoolWithCCV;
-    s_siloedLockReleasePool = pools.siloedLockReleasePool;
+    s_siloedTokenPool = pools.siloedTokenPool;
 
     emit PoolAddressesUpdated(pools);
   }
@@ -346,7 +345,7 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
       cctpV1Pool: s_cctpV1Pool,
       cctpV2Pool: s_cctpV2Pool,
       cctpV2PoolWithCCV: s_cctpV2PoolWithCCV,
-      siloedLockReleasePool: s_siloedLockReleasePool
+      siloedTokenPool: s_siloedTokenPool
     });
   }
 
@@ -377,7 +376,7 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
       LockOrBurnMechanism mechanism = mechanisms[i];
       s_lockOrBurnMechanism[remoteChainSelectors[i]] = mechanism;
 
-      if (mechanism == LockOrBurnMechanism.LOCK_RELEASE && s_siloedLockReleasePool == address(0)) {
+      if (mechanism == LockOrBurnMechanism.LOCK_RELEASE && s_siloedTokenPool == address(0)) {
         revert MustSetPoolForMechanism(remoteChainSelectors[i], mechanism);
       }
       if (mechanism == LockOrBurnMechanism.CCTP_V1 && s_cctpV1Pool == address(0)) {
@@ -465,7 +464,7 @@ contract USDCTokenPoolProxy is Ownable2StepMsgSender, IPoolV1V2, ITypeAndVersion
     } else if (mechanism == LockOrBurnMechanism.CCTP_V1) {
       pool = s_cctpV1Pool;
     } else if (mechanism == LockOrBurnMechanism.LOCK_RELEASE) {
-      pool = s_siloedLockReleasePool;
+      pool = s_siloedTokenPool;
       isPoolV2 = true;
     }
 

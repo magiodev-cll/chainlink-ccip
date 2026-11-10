@@ -328,7 +328,7 @@ contract cctp_e2e is OnRampSetup, RouterFixture {
         cctpV1Pool: address(0),
         cctpV2Pool: address(0),
         cctpV2PoolWithCCV: address(setup.tokenPool),
-        siloedLockReleasePool: address(0)
+        siloedTokenPool: address(0)
       }),
       router,
       address(setup.verifierResolver)
