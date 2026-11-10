@@ -15,7 +15,7 @@ contract ERC20BurnMintTokenHandler is TokenHandler {
   ) TokenHandler(token) {}
 
   function typeAndVersion() external pure virtual override returns (string memory) {
-    return "ERC20BurnMintTokenHandler 2.1.0";
+    return "ERC20BurnMintTokenHandler 2.0.0";
   }
 
   /// @inheritdoc ITokenHandler

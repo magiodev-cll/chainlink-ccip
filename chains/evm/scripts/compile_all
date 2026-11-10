@@ -132,7 +132,6 @@ compileContract pools/BurnWithFromMintTokenPool
 compileContract pools/BurnToAddressMintTokenPool
 compileContract pools/TokenPool
 compileContract pools/SiloedTokenPool
-compileContract pools/ERC20LockBox
 compileContract pools/ERC20LockReleaseTokenHandler
 compileContract pools/ERC20BurnMintTokenHandler
 compileContract pools/ERC20ExternalMinterTokenHandler

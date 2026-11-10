@@ -642,7 +642,7 @@ contracts:
   - contract_name: LockReleaseTokenPool
     version: "2.0.0"
     functions:
-      - name: getLockBox
+      - name: getTokenHandler
         access: public
 
   - contract_name: SiloedTokenPool
@@ -721,15 +721,79 @@ contracts:
       - name: getAllAuthorizedCallers
         access: public
 
-  - contract_name: ERC20LockBox
+  - contract_name: ERC20LockReleaseTokenHandler
     version: "2.0.0"
     functions:
       - name: applyAuthorizedCallerUpdates
         access: owner
       - name: getAllAuthorizedCallers
         access: public
-      - name : transferOwnership
+      - name: getMechanism
+        access: public
+      - name: getToken
+        access: public
+      - name: isAdminCaller
+        access: public
+      - name: isSelectorAllowed
+        access: public
+      - name: isTokenSupported
+        access: public
+      - name: setAdminCaller
         access: owner
+      - name: setSelectorAllowed
+        access: owner
+      - name: transferOwnership
+        access: owner
+
+  - contract_name: ERC20BurnMintTokenHandler
+    version: "2.0.0"
+    functions:
+      - name: applyAuthorizedCallerUpdates
+        access: owner
+      - name: getAllAuthorizedCallers
+        access: public
+      - name: getMechanism
+        access: public
+      - name: getToken
+        access: public
+      - name: isAdminCaller
+        access: public
+      - name: isSelectorAllowed
+        access: public
+      - name: isTokenSupported
+        access: public
+      - name: setAdminCaller
+        access: owner
+      - name: setSelectorAllowed
+        access: owner
+      - name: transferOwnership
+        access: owner
+
+  - contract_name: ERC20ExternalMinterTokenHandler
+    version: "2.0.0"
+    functions:
+      - name: applyAuthorizedCallerUpdates
+        access: owner
+      - name: getAllAuthorizedCallers
+        access: public
+      - name: getMechanism
+        access: public
+      - name: getToken
+        access: public
+      - name: isAdminCaller
+        access: public
+      - name: isSelectorAllowed
+        access: public
+      - name: isTokenSupported
+        access: public
+      - name: setAdminCaller
+        access: owner
+      - name: setSelectorAllowed
+        access: owner
+      - name: transferOwnership
+        access: owner
+      - name: getMinter
+        access: public
 
   - contract_name: MockReceiverV2
     version: "2.0.0"

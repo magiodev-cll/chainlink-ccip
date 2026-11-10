@@ -33,7 +33,7 @@ contract ERC20ExternalMinterTokenHandler is TokenHandler {
   }
 
   function typeAndVersion() external pure virtual override returns (string memory) {
-    return "ERC20ExternalMinterTokenHandler 2.1.0";
+    return "ERC20ExternalMinterTokenHandler 2.0.0";
   }
 
   /// @notice Returns the external minter used by this handler.

@@ -33,7 +33,6 @@ package ccip
 //go:generate go run ./wrap ccip CrossChainPoolToken cross_chain_pool_token
 //go:generate go run ./wrap ccip LockReleaseTokenPool lock_release_token_pool
 //go:generate go run ./wrap ccip SiloedTokenPool siloed_token_pool
-//go:generate go run ./wrap ccip ERC20LockBox erc20_lock_box
 //go:generate go run ./wrap ccip ERC20LockReleaseTokenHandler erc20_lock_release_token_handler
 //go:generate go run ./wrap ccip ERC20BurnMintTokenHandler erc20_burn_mint_token_handler
 //go:generate go run ./wrap ccip ERC20ExternalMinterTokenHandler erc20_external_minter_token_handler

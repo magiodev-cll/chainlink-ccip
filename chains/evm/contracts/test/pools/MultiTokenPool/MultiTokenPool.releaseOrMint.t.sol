@@ -81,7 +81,7 @@ contract MultiTokenPool_releaseOrMint is MultiTokenPoolSetup {
   function test_releaseOrMint_RevertWhen_UnsupportedLockOrBurnFlavor() public {
     IPoolConfigManager.ResolvedInboundTransfer memory transfer = _defaultInboundTransfer(1e18);
     transfer.lockOrBurnFlavor = IPoolConfigManager.LockOrBurnFlavor.Lock;
-    transfer.lockOrBurnAddress = makeAddr("lockBox");
+    transfer.lockOrBurnAddress = makeAddr("tokenHandler");
     _mockValidateReleaseOrMint(_releaseOrMintIn(1e18), FinalityCodec.WAIT_FOR_FINALITY_FLAG, transfer);
 
     vm.startPrank(s_allowedOffRamp);

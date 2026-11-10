@@ -7,7 +7,7 @@ import {TokenPoolFactory} from "../../TokenPoolFactory.sol";
 import {RateLimiter} from "../../libraries/RateLimiter.sol";
 import {BurnFromMintTokenPool} from "../../pools/BurnFromMintTokenPool.sol";
 import {BurnMintTokenPool} from "../../pools/BurnMintTokenPool.sol";
-import {ERC20LockBox} from "../../pools/ERC20LockBox.sol";
+import {ERC20LockReleaseTokenHandler} from "../../pools/ERC20LockReleaseTokenHandler.sol";
 import {LockReleaseTokenPool} from "../../pools/LockReleaseTokenPool.sol";
 import {TokenPool} from "../../pools/TokenPool.sol";
 import {RegistryModuleOwnerCustom} from "../../tokenAdminRegistry/RegistryModuleOwnerCustom.sol";
@@ -101,7 +101,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
       remotePoolFactory: address(newTokenPoolFactory),
       remoteRouter: address(s_destRouter),
       remoteRMNProxy: address(s_rmnProxy),
-      remoteLockBox: address(0),
+      remoteTokenHandler: address(0),
       remoteTokenDecimals: LOCAL_TOKEN_DECIMALS
     });
 
@@ -233,7 +233,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
       remotePoolFactory: address(newTokenPoolFactory),
       remoteRouter: address(s_destRouter),
       remoteRMNProxy: address(s_rmnProxy),
-      remoteLockBox: address(0),
+      remoteTokenHandler: address(0),
       remoteTokenDecimals: LOCAL_TOKEN_DECIMALS
     });
 
@@ -324,7 +324,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
         remotePoolFactory: address(0),
         remoteRouter: address(0),
         remoteRMNProxy: address(0),
-        remoteLockBox: address(0),
+        remoteTokenHandler: address(0),
         remoteTokenDecimals: 0
       }), // remoteChainConfig
       TokenPoolFactory.PoolType.BURN_MINT, // poolType
@@ -369,7 +369,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
     assertEq(IOwner(poolAddress).owner(), OWNER, "Pool should be owned by the owner");
   }
 
-  function test_deployTokenPoolWithExistingToken_LockRelease_UserLockBoxOwnershipPreserved() public {
+  function test_deployTokenPoolWithExistingToken_LockRelease_UserTokenHandlerOwnershipPreserved() public {
     CrossChainToken token = new CrossChainToken(
       BaseERC20.ConstructorParams({
         name: "TestToken",
@@ -383,7 +383,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
       address(0),
       OWNER
     );
-    ERC20LockBox userLockBox = new ERC20LockBox(address(token));
+    ERC20LockReleaseTokenHandler userTokenHandler = new ERC20LockReleaseTokenHandler(address(token));
 
     address poolAddress = s_tokenPoolFactory.deployTokenPoolWithExistingToken(
       address(token),
@@ -391,19 +391,19 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
       TokenPoolFactory.PoolType.LOCK_RELEASE,
       new TokenPoolFactory.RemoteTokenPoolInfo[](0),
       LOCK_RELEASE_INIT_CODE,
-      address(userLockBox),
+      address(userTokenHandler),
       FAKE_SALT,
       address(0)
     );
 
-    assertEq(userLockBox.owner(), OWNER, "lockbox owner should remain user");
+    assertEq(userTokenHandler.owner(), OWNER, "token handler owner should remain user");
 
     Ownable2Step(poolAddress).acceptOwnership();
 
     assertEq(Ownable2Step(poolAddress).owner(), OWNER, "pool should be owned by owner");
   }
 
-  function test_deployTokenAndTokenPool_LockRelease_AuthorizesPoolForLockBox() public {
+  function test_deployTokenAndTokenPool_LockRelease_AuthorizesPoolForTokenHandler() public {
     (address tokenAddress, address poolAddress) = s_tokenPoolFactory.deployTokenAndTokenPool(
       new TokenPoolFactory.RemoteTokenPoolInfo[](0),
       LOCAL_TOKEN_DECIMALS,
@@ -415,15 +415,58 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
       address(0)
     );
 
-    bytes memory lockBoxCreationCode = abi.encodePacked(type(ERC20LockBox).creationCode, abi.encode(tokenAddress));
-    address predictedLockBox = DYNAMIC_SALT.computeAddress(keccak256(lockBoxCreationCode), address(s_tokenPoolFactory));
+    bytes memory tokenHandlerCreationCode =
+      abi.encodePacked(type(ERC20LockReleaseTokenHandler).creationCode, abi.encode(tokenAddress));
+    address predictedTokenHandler =
+      DYNAMIC_SALT.computeAddress(keccak256(tokenHandlerCreationCode), address(s_tokenPoolFactory));
 
     Ownable2Step(poolAddress).acceptOwnership();
 
     assertEq(
-      AuthorizedCallers(predictedLockBox).getAllAuthorizedCallers()[0],
+      AuthorizedCallers(predictedTokenHandler).getAllAuthorizedCallers()[0],
       poolAddress,
-      "pool should be authorized caller on lockbox"
+      "pool should be authorized caller on token handler"
+    );
+  }
+
+  function test_deployTokenAndTokenPool_LockRelease_AllowsRemoteSelectors() public {
+    TokenPoolFactory.RemoteTokenPoolInfo[] memory remoteTokenPools = new TokenPoolFactory.RemoteTokenPoolInfo[](1);
+    remoteTokenPools[0] = TokenPoolFactory.RemoteTokenPoolInfo({
+      remoteChainSelector: DEST_CHAIN_SELECTOR,
+      remotePoolAddress: abi.encode(makeAddr("remotePool")),
+      remotePoolInitCode: "",
+      remoteChainConfig: TokenPoolFactory.RemoteChainConfig({
+        remotePoolFactory: address(0),
+        remoteRouter: address(0),
+        remoteRMNProxy: address(0),
+        remoteTokenHandler: address(0),
+        remoteTokenDecimals: 0
+      }),
+      poolType: TokenPoolFactory.PoolType.LOCK_RELEASE,
+      remoteTokenAddress: abi.encode(makeAddr("remoteToken")),
+      remoteTokenInitCode: "",
+      rateLimiterConfig: RateLimiter.Config(false, 0, 0)
+    });
+
+    (address tokenAddress,) = s_tokenPoolFactory.deployTokenAndTokenPool(
+      remoteTokenPools,
+      LOCAL_TOKEN_DECIMALS,
+      TokenPoolFactory.PoolType.LOCK_RELEASE,
+      s_tokenInitCode,
+      LOCK_RELEASE_INIT_CODE,
+      address(0),
+      FAKE_SALT,
+      address(0)
+    );
+
+    bytes memory tokenHandlerCreationCode =
+      abi.encodePacked(type(ERC20LockReleaseTokenHandler).creationCode, abi.encode(tokenAddress));
+    address predictedTokenHandler =
+      DYNAMIC_SALT.computeAddress(keccak256(tokenHandlerCreationCode), address(s_tokenPoolFactory));
+
+    assertTrue(
+      ERC20LockReleaseTokenHandler(predictedTokenHandler).isSelectorAllowed(DEST_CHAIN_SELECTOR),
+      "remote selector should be allowed on the token handler"
     );
   }
 
@@ -464,14 +507,14 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
       OWNER
     );
 
-    ERC20LockBox localLockBox = new ERC20LockBox(address(newLocalToken));
-    ERC20LockBox remoteLockBox = new ERC20LockBox(address(newRemoteToken));
+    ERC20LockReleaseTokenHandler localTokenHandler = new ERC20LockReleaseTokenHandler(address(newLocalToken));
+    ERC20LockReleaseTokenHandler remoteTokenHandler = new ERC20LockReleaseTokenHandler(address(newRemoteToken));
 
     TokenPoolFactory.RemoteChainConfig memory remoteChainConfig = TokenPoolFactory.RemoteChainConfig({
       remotePoolFactory: address(newTokenPoolFactory),
       remoteRouter: address(s_destRouter),
       remoteRMNProxy: address(s_rmnProxy),
-      remoteLockBox: address(remoteLockBox),
+      remoteTokenHandler: address(remoteTokenHandler),
       remoteTokenDecimals: LOCAL_TOKEN_DECIMALS
     });
 
@@ -494,7 +537,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
       TokenPoolFactory.PoolType.LOCK_RELEASE,
       remoteTokenPools,
       type(LockReleaseTokenPool).creationCode,
-      address(localLockBox),
+      address(localTokenHandler),
       FAKE_SALT,
       address(0)
     );
@@ -513,19 +556,19 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
       TokenPoolFactory.PoolType.LOCK_RELEASE,
       new TokenPoolFactory.RemoteTokenPoolInfo[](0),
       type(LockReleaseTokenPool).creationCode,
-      address(remoteLockBox),
+      address(remoteTokenHandler),
       FAKE_SALT,
       address(0)
     );
 
     address[] memory allowedCallers = new address[](1);
     allowedCallers[0] = poolAddress;
-    localLockBox.applyAuthorizedCallerUpdates(
+    localTokenHandler.applyAuthorizedCallerUpdates(
       AuthorizedCallers.AuthorizedCallerArgs({addedCallers: allowedCallers, removedCallers: new address[](0)})
     );
 
     allowedCallers[0] = newPoolAddress;
-    remoteLockBox.applyAuthorizedCallerUpdates(
+    remoteTokenHandler.applyAuthorizedCallerUpdates(
       AuthorizedCallers.AuthorizedCallerArgs({addedCallers: allowedCallers, removedCallers: new address[](0)})
     );
 
@@ -562,7 +605,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
         remotePoolFactory: address(0),
         remoteRouter: address(0),
         remoteRMNProxy: address(0),
-        remoteLockBox: address(0),
+        remoteTokenHandler: address(0),
         remoteTokenDecimals: 0
       }), // remoteChainConfig
       TokenPoolFactory.PoolType.BURN_MINT, // poolType
@@ -634,7 +677,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
       remotePoolFactory: address(newTokenPoolFactory),
       remoteRouter: address(s_destRouter),
       remoteRMNProxy: address(s_rmnProxy),
-      remoteLockBox: address(0),
+      remoteTokenHandler: address(0),
       remoteTokenDecimals: REMOTE_TOKEN_DECIMALS
     });
 
@@ -1061,7 +1104,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
         remotePoolFactory: makeAddr("factory"),
         remoteRouter: makeAddr("router"),
         remoteRMNProxy: makeAddr("rmn"),
-        remoteLockBox: address(0),
+        remoteTokenHandler: address(0),
         remoteTokenDecimals: LOCAL_TOKEN_DECIMALS
       }),
       TokenPoolFactory.PoolType.BURN_MINT,
@@ -1093,7 +1136,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
         remotePoolFactory: makeAddr("factory"),
         remoteRouter: makeAddr("router"),
         remoteRMNProxy: makeAddr("rmn"),
-        remoteLockBox: address(0),
+        remoteTokenHandler: address(0),
         remoteTokenDecimals: LOCAL_TOKEN_DECIMALS
       }),
       TokenPoolFactory.PoolType.BURN_MINT,
@@ -1115,7 +1158,7 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
     );
   }
 
-  function test_deployTokenPoolWithExistingToken_RevertWhen_InvalidLockBoxToken() public {
+  function test_deployTokenPoolWithExistingToken_RevertWhen_InvalidTokenHandlerToken() public {
     CrossChainToken token = new CrossChainToken(
       BaseERC20.ConstructorParams({
         name: "TestToken",
@@ -1142,17 +1185,17 @@ contract TokenPoolFactory_deployTokenAndTokenPool is TokenPoolFactorySetup {
       address(0),
       OWNER
     );
-    ERC20LockBox lockBox = new ERC20LockBox(address(otherToken));
+    ERC20LockReleaseTokenHandler tokenHandler = new ERC20LockReleaseTokenHandler(address(otherToken));
 
     TokenPoolFactory.RemoteTokenPoolInfo[] memory remotes = new TokenPoolFactory.RemoteTokenPoolInfo[](0);
-    vm.expectRevert(abi.encodeWithSelector(TokenPoolFactory.InvalidLockBoxToken.selector, address(token)));
+    vm.expectRevert(abi.encodeWithSelector(TokenPoolFactory.InvalidTokenHandlerToken.selector, address(token)));
     s_tokenPoolFactory.deployTokenPoolWithExistingToken(
       address(token),
       LOCAL_TOKEN_DECIMALS,
       TokenPoolFactory.PoolType.LOCK_RELEASE,
       remotes,
       LOCK_RELEASE_INIT_CODE,
-      address(lockBox),
+      address(tokenHandler),
       FAKE_SALT,
       address(0)
     );

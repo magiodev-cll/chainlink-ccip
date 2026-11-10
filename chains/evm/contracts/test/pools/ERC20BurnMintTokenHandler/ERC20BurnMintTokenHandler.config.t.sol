@@ -16,4 +16,12 @@ contract ERC20BurnMintTokenHandler_config is ERC20BurnMintTokenHandlerSetup {
   function test_getMechanism() public view {
     assertTrue(s_handler.getMechanism() == ITokenHandler.Mechanism.BURN_MINT);
   }
+
+  function test_typeAndVersion() public view {
+    assertEq(s_handler.typeAndVersion(), "ERC20BurnMintTokenHandler 2.0.0");
+  }
+
+  function test_getToken() public view {
+    assertEq(address(s_handler.getToken()), address(s_token));
+  }
 }

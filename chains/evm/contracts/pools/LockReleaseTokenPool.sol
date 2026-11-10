@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {ILockBox} from "../interfaces/ILockBox.sol";
+import {ITokenHandler} from "../interfaces/ITokenHandler.sol";
 import {ITypeAndVersion} from "@chainlink/contracts/src/v0.8/shared/interfaces/ITypeAndVersion.sol";
 
 import {TokenPool} from "./TokenPool.sol";
@@ -18,8 +18,10 @@ contract LockReleaseTokenPool is TokenPool, ITypeAndVersion {
     return "LockReleaseTokenPool 2.0.0";
   }
 
-  /// @notice The lock box for the token pool.
-  ILockBox internal immutable i_lockBox;
+  error InvalidTokenHandler(address tokenHandler);
+
+  /// @notice The token handler for the token pool.
+  ITokenHandler internal immutable i_tokenHandler;
 
   constructor(
     IERC20 token,
@@ -27,21 +29,24 @@ contract LockReleaseTokenPool is TokenPool, ITypeAndVersion {
     address advancedPoolHooks,
     address rmnProxy,
     address router,
-    address lockBox
+    address tokenHandler
   ) TokenPool(token, localTokenDecimals, advancedPoolHooks, rmnProxy, router) {
-    if (lockBox == address(0)) revert ZeroAddressInvalid();
+    if (tokenHandler == address(0)) revert ZeroAddressInvalid();
 
-    ILockBox lockBoxContract = ILockBox(lockBox);
-    if (!lockBoxContract.isTokenSupported(address(token))) {
+    ITokenHandler handler = ITokenHandler(tokenHandler);
+    if (!handler.isTokenSupported(address(token))) {
       revert InvalidToken(address(token));
     }
-    token.forceApprove(lockBox, type(uint256).max);
-    i_lockBox = lockBoxContract;
+    if (handler.getMechanism() != ITokenHandler.Mechanism.LOCK_RELEASE) {
+      revert InvalidTokenHandler(tokenHandler);
+    }
+    token.forceApprove(tokenHandler, type(uint256).max);
+    i_tokenHandler = handler;
   }
 
-  /// @notice Gets the lock box address.
-  function getLockBox() external view returns (address) {
-    return address(i_lockBox);
+  /// @notice Gets the token handler address.
+  function getTokenHandler() external view returns (address) {
+    return address(i_tokenHandler);
   }
 
   /// @inheritdoc TokenPool
@@ -51,16 +56,16 @@ contract LockReleaseTokenPool is TokenPool, ITypeAndVersion {
     uint64 remoteChainSelector,
     uint256 amount
   ) internal override {
-    i_lockBox.deposit(address(i_token), remoteChainSelector, amount);
+    i_tokenHandler.deposit(address(i_token), remoteChainSelector, amount);
   }
 
   /// @inheritdoc TokenPool
-  /// @dev Releases tokens from the lock box to the receiver.
+  /// @dev Releases tokens from the token handler to the receiver.
   function _releaseOrMint(
     address receiver,
     uint256 amount,
     uint64 remoteChainSelector
   ) internal override {
-    i_lockBox.withdraw(address(i_token), remoteChainSelector, amount, receiver);
+    i_tokenHandler.withdraw(address(i_token), remoteChainSelector, amount, receiver);
   }
 }

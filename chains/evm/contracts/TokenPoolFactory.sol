@@ -6,7 +6,7 @@ import {IOwnable} from "@chainlink/contracts/src/v0.8/shared/interfaces/IOwnable
 import {ITypeAndVersion} from "@chainlink/contracts/src/v0.8/shared/interfaces/ITypeAndVersion.sol";
 
 import {RateLimiter} from "./libraries/RateLimiter.sol";
-import {ERC20LockBox} from "./pools/ERC20LockBox.sol";
+import {ERC20LockReleaseTokenHandler} from "./pools/ERC20LockReleaseTokenHandler.sol";
 import {TokenPool} from "./pools/TokenPool.sol";
 import {RegistryModuleOwnerCustom} from "./tokenAdminRegistry/RegistryModuleOwnerCustom.sol";
 import {CrossChainToken} from "./tokens/CrossChainToken.sol";
@@ -25,7 +25,7 @@ contract TokenPoolFactory is ITypeAndVersion {
   using Create2 for bytes32;
 
   error InvalidZeroAddress();
-  error InvalidLockBoxToken(address poolToken);
+  error InvalidTokenHandlerToken(address poolToken);
   error EmptyInitCode();
 
   /// @notice The type of pool to deploy. Types may be expanded in future versions.
@@ -53,7 +53,7 @@ contract TokenPoolFactory is ITypeAndVersion {
     address remotePoolFactory; // The factory contract on the remote chain which will make the deployment.
     address remoteRouter; // The router on the remote chain.
     address remoteRMNProxy; // The RMNProxy contract on the remote chain.
-    address remoteLockBox; // The lockBox contract on the remote chain (for LOCK_RELEASE pools).
+    address remoteTokenHandler; // The token handler contract on the remote chain (for LOCK_RELEASE pools).
     uint8 remoteTokenDecimals; // The number of decimals for the token on the remote chain.
   }
 
@@ -61,12 +61,12 @@ contract TokenPoolFactory is ITypeAndVersion {
     address token;
     uint8 localTokenDecimals;
     PoolType localPoolType;
-    address lockBox;
+    address tokenHandler;
     bytes32 salt;
   }
 
   string public constant typeAndVersion = "TokenPoolFactory 2.0.0";
-  bytes private constant LOCKBOX_INIT_CODE = type(ERC20LockBox).creationCode;
+  bytes private constant TOKEN_HANDLER_INIT_CODE = type(ERC20LockReleaseTokenHandler).creationCode;
 
   address private immutable i_rmnProxy;
   ITokenAdminRegistry private immutable i_tokenAdminRegistry;
@@ -134,7 +134,8 @@ contract TokenPoolFactory is ITypeAndVersion {
   /// factory retaining this role is therefore completely safe, as long as it transferred the token admin registry
   /// permissions.
   /// @param tokenPoolInitCode The creation code for the token pool, without the constructor parameters appended.
-  /// @param lockBox The lockbox associated with the token, required for lock/release pools.
+  /// @param tokenHandler The token handler associated with the token, required for lock/release pools. A
+  /// user-supplied handler must already authorize the pool and allow every remote selector.
   /// @param salt The salt to be used in the create2 deployment of the token and token pool to ensure a unique address.
   /// @param futureOwner The address that will own the token and pool after the transaction. If set to address(0), the
   /// sender will be the future owner. If the token mints any funds to the factory, the factory will forward these to
@@ -147,7 +148,7 @@ contract TokenPoolFactory is ITypeAndVersion {
     PoolType localPoolType,
     bytes memory tokenInitCode,
     bytes calldata tokenPoolInitCode,
-    address lockBox,
+    address tokenHandler,
     bytes32 salt,
     address futureOwner
   ) external returns (address, address) {
@@ -162,7 +163,11 @@ contract TokenPoolFactory is ITypeAndVersion {
     address token = Create2.deploy(0, salt, tokenInitCode);
 
     LocalPoolConfig memory localConfig = LocalPoolConfig({
-      token: token, localTokenDecimals: localTokenDecimals, localPoolType: localPoolType, lockBox: lockBox, salt: salt
+      token: token,
+      localTokenDecimals: localTokenDecimals,
+      localPoolType: localPoolType,
+      tokenHandler: tokenHandler,
+      salt: salt
     });
 
     // Deploy the token pool.
@@ -198,7 +203,8 @@ contract TokenPoolFactory is ITypeAndVersion {
   /// @param localPoolType The type of pool to deploy locally (BURN_MINT or LOCK_RELEASE).
   /// @param remoteTokenPools An array of remote token pools info to be used in the pool's applyChainUpdates function.
   /// @param tokenPoolInitCode The creation code for the token pool.
-  /// @param lockBox The lockbox associated with the token, required for lock/release pools.
+  /// @param tokenHandler The token handler associated with the token, required for lock/release pools. A
+  /// user-supplied handler must already authorize the pool and allow every remote selector.
   /// @param salt The salt to be used in the create2 deployment of the token pool.
   /// @param futureOwner The address that will own the pool after the transaction. If set to address(0), the sender will
   /// be the future owner.
@@ -209,7 +215,7 @@ contract TokenPoolFactory is ITypeAndVersion {
     PoolType localPoolType,
     RemoteTokenPoolInfo[] calldata remoteTokenPools,
     bytes calldata tokenPoolInitCode,
-    address lockBox,
+    address tokenHandler,
     bytes32 salt,
     address futureOwner
   ) external returns (address poolAddress) {
@@ -221,7 +227,11 @@ contract TokenPoolFactory is ITypeAndVersion {
     salt = keccak256(abi.encodePacked(salt, msg.sender));
 
     LocalPoolConfig memory localConfig = LocalPoolConfig({
-      token: token, localTokenDecimals: localTokenDecimals, localPoolType: localPoolType, lockBox: lockBox, salt: salt
+      token: token,
+      localTokenDecimals: localTokenDecimals,
+      localPoolType: localPoolType,
+      tokenHandler: tokenHandler,
+      salt: salt
     });
 
     // create the token pool and return the address.
@@ -235,7 +245,7 @@ contract TokenPoolFactory is ITypeAndVersion {
   /// @notice Deploys a token pool with the given token information and remote token pools.
   /// @param remoteTokenPools An array of remote token pools info to be used in the pool's applyChainUpdates function.
   /// @param tokenPoolInitCode The creation code for the token pool.
-  /// @param localConfig Local deployment config including token, decimals, pool type, lockbox, and salt.
+  /// @param localConfig Local deployment config including token, decimals, pool type, token handler, and salt.
   /// @return poolAddress The address of the token pool that was deployed.
   function _createTokenPool(
     RemoteTokenPoolInfo[] calldata remoteTokenPools,
@@ -251,23 +261,23 @@ contract TokenPoolFactory is ITypeAndVersion {
     }
 
     // Construct the initArgs for the token pool using the immutable contracts for CCIP on the local chain.
-    // LockRelease pools need lockBox, BurnMint pools don't.
+    // LockRelease pools need tokenHandler, BurnMint pools don't.
     bytes memory tokenPoolInitArgs;
-    address localLockBox;
-    bool deployedLockBox = false;
+    address localTokenHandler;
+    bool deployedTokenHandler = false;
     if (localConfig.localPoolType == PoolType.LOCK_RELEASE) {
-      localLockBox = localConfig.lockBox;
-      if (localLockBox == address(0)) {
-        localLockBox = _deployLockBox(localConfig.token, localConfig.salt);
-        deployedLockBox = true;
+      localTokenHandler = localConfig.tokenHandler;
+      if (localTokenHandler == address(0)) {
+        localTokenHandler = _deployTokenHandler(localConfig.token, localConfig.salt);
+        deployedTokenHandler = true;
       } else {
-        ERC20LockBox lockBoxContract = ERC20LockBox(localLockBox);
-        if (!lockBoxContract.isTokenSupported(localConfig.token)) {
-          revert InvalidLockBoxToken(localConfig.token);
+        ERC20LockReleaseTokenHandler tokenHandlerContract = ERC20LockReleaseTokenHandler(localTokenHandler);
+        if (!tokenHandlerContract.isTokenSupported(localConfig.token)) {
+          revert InvalidTokenHandlerToken(localConfig.token);
         }
       }
       tokenPoolInitArgs = abi.encode(
-        localConfig.token, localConfig.localTokenDecimals, address(0), i_rmnProxy, i_ccipRouter, localLockBox
+        localConfig.token, localConfig.localTokenDecimals, address(0), i_rmnProxy, i_ccipRouter, localTokenHandler
       );
     } else {
       tokenPoolInitArgs =
@@ -280,10 +290,10 @@ contract TokenPoolFactory is ITypeAndVersion {
     // Apply the chain updates to the token pool.
     TokenPool(poolAddress).applyChainUpdates(new uint64[](0), chainUpdates);
 
-    // Authorize the new pool to interact with the local lockbox and transfer ownership to the futureOwner.
-    if (deployedLockBox) {
-      _authorizePoolInLockBox(localLockBox, poolAddress);
-      ERC20LockBox(localLockBox).transferOwnership(futureOwner);
+    // Authorize the new pool and allow the configured lanes, then transfer ownership to the futureOwner.
+    if (deployedTokenHandler) {
+      _authorizePoolInTokenHandler(localTokenHandler, poolAddress, remoteTokenPools);
+      ERC20LockReleaseTokenHandler(localTokenHandler).transferOwnership(futureOwner);
     }
 
     // Begin the 2 step ownership transfer of the token pool to the futureOwner.
@@ -296,7 +306,7 @@ contract TokenPoolFactory is ITypeAndVersion {
     RemoteTokenPoolInfo memory remoteTokenPool,
     bytes32 salt
   ) private pure returns (TokenPool.ChainUpdate memory) {
-    address remoteLockBox = remoteTokenPool.remoteChainConfig.remoteLockBox;
+    address remoteTokenHandler = remoteTokenPool.remoteChainConfig.remoteTokenHandler;
 
     // If the user provides an empty byte string, indicated no token has already been deployed,
     // then the address of the token needs to be predicted. Otherwise the address provided will be used.
@@ -311,12 +321,12 @@ contract TokenPoolFactory is ITypeAndVersion {
       );
     }
 
-    // For lock/release pools, predict the remote lockbox if none is provided.
-    if (remoteTokenPool.poolType == PoolType.LOCK_RELEASE && remoteLockBox == address(0)) {
+    // For lock/release pools, predict the remote token handler if none is provided.
+    if (remoteTokenPool.poolType == PoolType.LOCK_RELEASE && remoteTokenHandler == address(0)) {
       address decodedRemoteToken = abi.decode(remoteTokenPool.remoteTokenAddress, (address));
-      (remoteLockBox,) =
-        _computeLockBoxAddress(decodedRemoteToken, salt, remoteTokenPool.remoteChainConfig.remotePoolFactory);
-      remoteTokenPool.remoteChainConfig.remoteLockBox = remoteLockBox;
+      (remoteTokenHandler,) =
+        _computeTokenHandlerAddress(decodedRemoteToken, salt, remoteTokenPool.remoteChainConfig.remotePoolFactory);
+      remoteTokenPool.remoteChainConfig.remoteTokenHandler = remoteTokenHandler;
     }
 
     // If the user provides an empty byte string parameter, indicating the pool has not been deployed yet,
@@ -349,42 +359,47 @@ contract TokenPoolFactory is ITypeAndVersion {
     });
   }
 
-  function _deployLockBox(
+  function _deployTokenHandler(
     address token,
     bytes32 salt
-  ) private returns (address lockBox) {
-    (address predicted, bytes memory creationCode) = _computeLockBoxAddress(token, salt, address(this));
-    lockBox = Create2.deploy(0, salt, creationCode);
+  ) private returns (address tokenHandler) {
+    (address predicted, bytes memory creationCode) = _computeTokenHandlerAddress(token, salt, address(this));
+    tokenHandler = Create2.deploy(0, salt, creationCode);
     // If deployment fails Create2 reverts; address mismatch is impossible since salt and init code are deterministic.
-    if (lockBox != predicted) revert InvalidZeroAddress();
-    return lockBox;
+    if (tokenHandler != predicted) revert InvalidZeroAddress();
+    return tokenHandler;
   }
 
-  function _computeLockBoxAddress(
+  function _computeTokenHandlerAddress(
     address token,
     bytes32 salt,
     address deployer
   ) private pure returns (address predicted, bytes memory creationCode) {
-    creationCode = abi.encodePacked(LOCKBOX_INIT_CODE, abi.encode(token));
+    creationCode = abi.encodePacked(TOKEN_HANDLER_INIT_CODE, abi.encode(token));
     predicted = salt.computeAddress(keccak256(creationCode), deployer);
     return (predicted, creationCode);
   }
 
-  function _authorizePoolInLockBox(
-    address lockBox,
-    address pool
+  function _authorizePoolInTokenHandler(
+    address tokenHandler,
+    address pool,
+    RemoteTokenPoolInfo[] calldata remoteTokenPools
   ) private {
-    ERC20LockBox lockBoxContract = ERC20LockBox(lockBox);
-    // Skip if this factory is not the owner; user-supplied lockboxes must already authorize the pool.
-    if (lockBoxContract.owner() != address(this)) {
+    ERC20LockReleaseTokenHandler tokenHandlerContract = ERC20LockReleaseTokenHandler(tokenHandler);
+    // Skip if this factory is not the owner; user-supplied handlers must already authorize the pool and allow the lanes.
+    if (tokenHandlerContract.owner() != address(this)) {
       return;
     }
 
     address[] memory added = new address[](1);
     added[0] = pool;
-    lockBoxContract.applyAuthorizedCallerUpdates(
+    tokenHandlerContract.applyAuthorizedCallerUpdates(
       AuthorizedCallers.AuthorizedCallerArgs({addedCallers: added, removedCallers: new address[](0)})
     );
+
+    for (uint256 i = 0; i < remoteTokenPools.length; ++i) {
+      tokenHandlerContract.setSelectorAllowed(remoteTokenPools[i].remoteChainSelector, true);
+    }
   }
 
   /// @notice Generates the hash of the init code the pool will be deployed with.
@@ -404,16 +419,16 @@ contract TokenPoolFactory is ITypeAndVersion {
   ) private pure returns (bytes32) {
     bytes memory constructorParams;
 
-    // LockRelease pools have an additional lockBox parameter.
+    // LockRelease pools have an additional tokenHandler parameter.
     if (poolType == PoolType.LOCK_RELEASE) {
-      // constructor(address token, uint8 localTokenDecimals, address advancedPoolHooks, address rmnProxy, address router, address lockBox).
+      // constructor(address token, uint8 localTokenDecimals, address advancedPoolHooks, address rmnProxy, address router, address tokenHandler).
       constructorParams = abi.encode(
         remoteTokenAddress,
         remoteChainConfig.remoteTokenDecimals,
         address(0),
         remoteChainConfig.remoteRMNProxy,
         remoteChainConfig.remoteRouter,
-        remoteChainConfig.remoteLockBox
+        remoteChainConfig.remoteTokenHandler
       );
     } else {
       // constructor(address token, uint8 localTokenDecimals, address advancedPoolHooks, address rmnProxy, address router).

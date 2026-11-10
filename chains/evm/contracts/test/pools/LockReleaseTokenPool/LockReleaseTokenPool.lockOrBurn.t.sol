@@ -110,7 +110,7 @@ contract LockReleaseTokenPool_lockOrBurn is LockReleaseTokenPoolSetup {
   function test_lockOrBurn_RevertWhen_CursedByRMN_PoolBurnRevertNotHealthy() public {
     // Should not burn tokens if cursed.
     vm.mockCall(address(s_mockRMNRemote), abi.encodeWithSignature("isCursed(bytes16)"), abi.encode(true));
-    uint256 before = s_token.balanceOf(address(s_lockBox));
+    uint256 before = s_token.balanceOf(address(s_tokenHandler));
 
     vm.startPrank(s_allowedOnRamp);
     vm.expectRevert(TokenPool.CursedByRMN.selector);
@@ -125,7 +125,7 @@ contract LockReleaseTokenPool_lockOrBurn is LockReleaseTokenPoolSetup {
       })
     );
 
-    assertEq(s_token.balanceOf(address(s_lockBox)), before);
+    assertEq(s_token.balanceOf(address(s_tokenHandler)), before);
   }
 
   function test_lockOrBurnV2_WithFee() public {
@@ -152,7 +152,7 @@ contract LockReleaseTokenPool_lockOrBurn is LockReleaseTokenPoolSetup {
     s_lockReleaseTokenPool.applyTokenTransferFeeConfigUpdates(feeConfigArgs, new uint64[](0));
 
     // Setup tokens - transfer to pool (simulating Router behavior).
-    uint256 lockBoxBalanceBefore = s_token.balanceOf(address(s_lockBox));
+    uint256 tokenHandlerBalanceBefore = s_token.balanceOf(address(s_tokenHandler));
     deal(address(s_token), address(s_lockReleaseTokenPool), amount);
     vm.startPrank(s_allowedOnRamp);
 
@@ -172,8 +172,8 @@ contract LockReleaseTokenPool_lockOrBurn is LockReleaseTokenPoolSetup {
     // Verify destTokenAmount is correct (amount minus fee).
     assertEq(destTokenAmount, expectedDestAmount);
 
-    // Verify only destTokenAmount went to lockbox (bridge liquidity).
-    assertEq(s_token.balanceOf(address(s_lockBox)), lockBoxBalanceBefore + expectedDestAmount);
+    // Verify only destTokenAmount went to the token handler (bridge liquidity).
+    assertEq(s_token.balanceOf(address(s_tokenHandler)), tokenHandlerBalanceBefore + expectedDestAmount);
 
     // Verify fees remained on the pool contract.
     assertEq(s_token.balanceOf(address(s_lockReleaseTokenPool)), expectedFee);

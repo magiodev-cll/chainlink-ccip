@@ -20,7 +20,7 @@ contract ERC20LockReleaseTokenHandler is TokenHandler {
   ) TokenHandler(token) {}
 
   function typeAndVersion() external pure virtual override returns (string memory) {
-    return "ERC20LockReleaseTokenHandler 2.1.0";
+    return "ERC20LockReleaseTokenHandler 2.0.0";
   }
 
   /// @inheritdoc ITokenHandler

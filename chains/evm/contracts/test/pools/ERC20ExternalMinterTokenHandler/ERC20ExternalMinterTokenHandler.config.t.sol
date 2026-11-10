@@ -12,8 +12,14 @@ contract ERC20ExternalMinterTokenHandler_config is ERC20ExternalMinterTokenHandl
   function test_constructor() public view {
     assertEq(address(s_handler.getToken()), address(s_token));
     assertEq(address(s_handler.getMinter()), address(s_minter));
-    assertEq(s_handler.typeAndVersion(), "ERC20ExternalMinterTokenHandler 2.1.0");
+  }
+
+  function test_getMechanism() public view {
     assertTrue(s_handler.getMechanism() == ITokenHandler.Mechanism.BURN_MINT);
+  }
+
+  function test_typeAndVersion() public view {
+    assertEq(s_handler.typeAndVersion(), "ERC20ExternalMinterTokenHandler 2.0.0");
   }
 
   function test_constructor_RevertWhen_MinterTokenMismatch() public {

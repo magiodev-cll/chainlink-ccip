@@ -59,10 +59,13 @@ const (
 	// LockReleaseTokenPoolAndProxy is the v1.5.0 lock-release pool, which is its own proxy (one
 	// contract, one address). Like BurnMintTokenPoolAndProxy it has no equivalent at v1.5.1 or
 	// later.
-	LockReleaseTokenPoolAndProxy cldf.ContractType = "LockReleaseTokenPoolAndProxy"
-	BurnMintWithLockReleaseFlag  cldf.ContractType = "BurnMintWithLockReleaseFlag"
-	TokenGovernor                cldf.ContractType = "TokenGovernor"
-	ERC20LockBox                 cldf.ContractType = "ERC20LockBox"
+	LockReleaseTokenPoolAndProxy    cldf.ContractType = "LockReleaseTokenPoolAndProxy"
+	BurnMintWithLockReleaseFlag     cldf.ContractType = "BurnMintWithLockReleaseFlag"
+	TokenGovernor                   cldf.ContractType = "TokenGovernor"
+	ERC20LockBox                    cldf.ContractType = "ERC20LockBox"
+	ERC20LockReleaseTokenHandler    cldf.ContractType = "ERC20LockReleaseTokenHandler"
+	ERC20BurnMintTokenHandler       cldf.ContractType = "ERC20BurnMintTokenHandler"
+	ERC20ExternalMinterTokenHandler cldf.ContractType = "ERC20ExternalMinterTokenHandler"
 
 	// CLL Identifiers
 	CLLQualifier         = "CLLCCIP"
