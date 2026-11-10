@@ -37,7 +37,7 @@ contract SiloedUSDCTokenPool_lockOrBurn is SiloedUSDCTokenPoolSetup {
 
     Pool.LockOrBurnOutV1 memory result = s_usdcTokenPool.lockOrBurn(lockOrBurnIn);
 
-    assertEq(s_USDCToken.balanceOf(address(s_destLockBox)), s_amount);
+    assertEq(s_USDCToken.balanceOf(address(s_destTokenHandler)), s_amount);
 
     // destPoolData is the local token decimals abi-encoded to 32 bytes
     assertEq(result.destPoolData.length, 32);
@@ -55,7 +55,7 @@ contract SiloedUSDCTokenPool_lockOrBurn is SiloedUSDCTokenPoolSetup {
     Pool.LockOrBurnOutV1 memory result = s_usdcTokenPool.lockOrBurn(lockOrBurnIn);
 
     // Assert: Verify the locked tokens accounting is updated
-    assertEq(s_USDCToken.balanceOf(address(s_destLockBox)), s_amount);
+    assertEq(s_USDCToken.balanceOf(address(s_destTokenHandler)), s_amount);
 
     // destPoolData is the local token decimals abi-encoded to 32 bytes
     assertEq(result.destPoolData.length, 32);
@@ -86,7 +86,7 @@ contract SiloedUSDCTokenPool_lockOrBurn is SiloedUSDCTokenPoolSetup {
 
     Pool.LockOrBurnOutV1 memory result2 = s_usdcTokenPool.lockOrBurn(lockOrBurnIn2);
 
-    assertEq(s_USDCToken.balanceOf(address(s_destLockBox)), s_amount + amount2);
+    assertEq(s_USDCToken.balanceOf(address(s_destTokenHandler)), s_amount + amount2);
 
     // destPoolData is the local token decimals abi-encoded to 32 bytes
     assertEq(result1.destPoolData.length, 32);
@@ -104,7 +104,7 @@ contract SiloedUSDCTokenPool_lockOrBurn is SiloedUSDCTokenPoolSetup {
 
     Pool.LockOrBurnOutV1 memory result = s_usdcTokenPool.lockOrBurn(lockOrBurnIn);
 
-    assertEq(s_USDCToken.balanceOf(address(s_destLockBox)), s_amount);
+    assertEq(s_USDCToken.balanceOf(address(s_destTokenHandler)), s_amount);
 
     assertEq(result.destPoolData.length, 32);
   }
@@ -131,7 +131,7 @@ contract SiloedUSDCTokenPool_lockOrBurn is SiloedUSDCTokenPoolSetup {
     s_usdcTokenPool.applyTokenTransferFeeConfigUpdates(feeConfigArgs, new uint64[](0));
     changePrank(s_routerAllowedOnRamp);
 
-    uint256 lockBoxBalanceBefore = s_USDCToken.balanceOf(address(s_destLockBox));
+    uint256 tokenHandlerBalanceBefore = s_USDCToken.balanceOf(address(s_destTokenHandler));
     deal(address(s_USDCToken), address(s_usdcTokenPool), s_amount);
 
     Pool.LockOrBurnInV1 memory lockOrBurnIn = Pool.LockOrBurnInV1({
@@ -145,7 +145,7 @@ contract SiloedUSDCTokenPool_lockOrBurn is SiloedUSDCTokenPoolSetup {
     (, uint256 destTokenAmount) = s_usdcTokenPool.lockOrBurn(lockOrBurnIn, 0, "");
 
     assertEq(destTokenAmount, expectedDestAmount);
-    assertEq(s_USDCToken.balanceOf(address(s_destLockBox)), lockBoxBalanceBefore + expectedDestAmount);
+    assertEq(s_USDCToken.balanceOf(address(s_destTokenHandler)), tokenHandlerBalanceBefore + expectedDestAmount);
     assertEq(s_USDCToken.balanceOf(address(s_usdcTokenPool)), expectedFee);
   }
 

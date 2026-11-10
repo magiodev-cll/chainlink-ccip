@@ -2,10 +2,10 @@
 pragma solidity ^0.8.24;
 
 import {IBurnMintERC20} from "../../interfaces/IBurnMintERC20.sol";
-import {ILockBox} from "../../interfaces/ILockBox.sol";
+import {ITokenHandler} from "../../interfaces/ITokenHandler.sol";
 
 import {Pool} from "../../libraries/Pool.sol";
-import {SiloedLockReleaseTokenPool} from "../SiloedLockReleaseTokenPool.sol";
+import {SiloedTokenPool} from "../SiloedTokenPool.sol";
 import {AuthorizedCallers} from "@chainlink/contracts/src/v0.8/shared/access/AuthorizedCallers.sol";
 
 import {IERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/IERC20.sol";
@@ -15,12 +15,12 @@ import {EnumerableSet} from "@openzeppelin/contracts@5.3.0/utils/structs/Enumera
 /// @notice A token pool for USDC which inherits the Siloed token functionality while adding the CCTP migration functionality.
 /// @dev The CCTP migration functions have been previously audited. The code has been moved from its own contract
 /// to this, to maximize simplicity. The only difference is that custom balance tracking
-/// has been removed and instead is now inherited from the SiloedLockReleaseTokenPool.
+/// has been removed and instead is now inherited from the SiloedTokenPool.
 /// @dev All chains should be siloed, otherwise the chain will not be
 /// able to migrate to CCTP in the future, due to the inability to manage the token
 /// balances under CCTP accounting rules defined at:
 /// https://github.com/circlefin/stablecoin-evm/blob/master/doc/bridged_USDC_standard.md
-contract SiloedUSDCTokenPool is SiloedLockReleaseTokenPool, AuthorizedCallers {
+contract SiloedUSDCTokenPool is SiloedTokenPool, AuthorizedCallers {
   using EnumerableMap for EnumerableMap.UintToAddressMap;
   using EnumerableSet for EnumerableSet.UintSet;
 
@@ -38,7 +38,7 @@ contract SiloedUSDCTokenPool is SiloedLockReleaseTokenPool, AuthorizedCallers {
   error ExistingMigrationProposal();
   error NoMigrationProposalPending();
   error ChainAlreadyMigrated(uint64 remoteChainSelector);
-  error LockBoxCannotBeShared(uint64 chainSelectorA, uint64 chainSelectorB, address lockBox);
+  error TokenHandlerCannotBeShared(uint64 chainSelectorA, uint64 chainSelectorB, address tokenHandler);
   error InsufficientLiquidity(uint256 availableLiquidity, uint256 requestedAmount);
 
   /// @notice The address of the circle-controlled wallet which will execute a CCTP lane migration
@@ -48,8 +48,8 @@ contract SiloedUSDCTokenPool is SiloedLockReleaseTokenPool, AuthorizedCallers {
   /// @notice The tokens excluded from being burned in a CCTP-migration.
   mapping(uint64 remoteChainSelector => uint256 excludedTokens) internal s_tokensExcludedFromBurn;
   /// @notice Snapshot of locked USDC for the currently proposed migration lane.
-  /// @dev Set by the owner using offchain net accounting of lockbox Deposit/Withdrawal events for the lane's lockbox.
-  /// This avoids using raw lockbox balance as burn input, which could include direct transfers that were never bridged.
+  /// @dev Set by the owner using offchain net accounting of token handler Deposit/Withdrawal events for the lane's token handler.
+  /// This avoids using the raw token handler balance as burn input, which could include direct transfers that were never bridged.
   uint256 internal s_lockedUSDCToBurn;
 
   /// @notice The chains that have been migrated to CCTP.
@@ -69,7 +69,7 @@ contract SiloedUSDCTokenPool is SiloedLockReleaseTokenPool, AuthorizedCallers {
     address rmnProxy,
     address router
   )
-    SiloedLockReleaseTokenPool(token, localTokenDecimals, advancedPoolHooks, rmnProxy, router)
+    SiloedTokenPool(token, localTokenDecimals, advancedPoolHooks, rmnProxy, router)
     AuthorizedCallers(new address[](0))
   {}
 
@@ -78,29 +78,29 @@ contract SiloedUSDCTokenPool is SiloedLockReleaseTokenPool, AuthorizedCallers {
     return "SiloedUSDCTokenPool 2.0.0";
   }
 
-  /// @notice Configure lockboxes.
-  /// @param lockBoxConfigs The lockbox configurations to set.
+  /// @notice Configure token handlers.
+  /// @param tokenHandlerConfigs The token handler configurations to set.
   /// @dev USDC lanes must remain fully siloed to keep migration burn accounting lane-specific.
-  /// Sharing one lockbox across selectors would couple balances across lanes and break migration assumptions.
-  function configureLockBoxes(
-    LockBoxConfig[] calldata lockBoxConfigs
+  /// Sharing one token handler across selectors would couple balances across lanes and break migration assumptions.
+  function configureTokenHandlers(
+    TokenHandlerConfig[] calldata tokenHandlerConfigs
   ) public override onlyOwner {
-    super.configureLockBoxes(lockBoxConfigs);
+    super.configureTokenHandlers(tokenHandlerConfigs);
     // Validate globally after applying updates so checks are order-independent for batched updates.
-    uint256 length = s_lockBoxes.length();
+    uint256 length = s_tokenHandlers.length();
     uint64[] memory chainSelectors = new uint64[](length);
-    address[] memory lockBoxes = new address[](length);
+    address[] memory tokenHandlers = new address[](length);
     for (uint256 i = 0; i < length; ++i) {
-      (uint256 chainSelector, address lockBox) = s_lockBoxes.at(i);
+      (uint256 chainSelector, address tokenHandler) = s_tokenHandlers.at(i);
       chainSelectors[i] = uint64(chainSelector);
-      lockBoxes[i] = lockBox;
+      tokenHandlers[i] = tokenHandler;
     }
 
     for (uint256 i = 0; i < length; ++i) {
-      address lockBoxA = lockBoxes[i];
+      address tokenHandlerA = tokenHandlers[i];
       for (uint256 j = i + 1; j < length; ++j) {
-        if (lockBoxA == lockBoxes[j]) {
-          revert LockBoxCannotBeShared(chainSelectors[i], chainSelectors[j], lockBoxA);
+        if (tokenHandlerA == tokenHandlers[j]) {
+          revert TokenHandlerCannotBeShared(chainSelectors[i], chainSelectors[j], tokenHandlerA);
         }
       }
     }
@@ -125,20 +125,20 @@ contract SiloedUSDCTokenPool is SiloedLockReleaseTokenPool, AuthorizedCallers {
     ) {
       // Circle's migration procedure requires a lane-level supply lock once migration is proposed/completed.
       // For those lanes, releaseOrMint must only consume the explicitly excluded in-flight reserve, and this
-      // guard must still apply when excludedTokens == 0 to prevent releasing newly deposited lockbox liquidity.
+      // guard must still apply when excludedTokens == 0 to prevent releasing newly deposited token handler liquidity.
       if (releaseOrMintIn.sourceDenominatedAmount > excludedTokens) {
         revert InsufficientLiquidity(excludedTokens, releaseOrMintIn.sourceDenominatedAmount);
       }
       s_tokensExcludedFromBurn[remoteChainSelector] -= releaseOrMintIn.sourceDenominatedAmount;
-      // During a proposed migration, the lockbox balance is the source of truth. Any release here reduces the
-      // lockbox balance, so burnLockedUSDC will not over-burn even without separate per-chain accounting.
+      // During a proposed migration, the token handler balance is the source of truth. Any release here reduces the
+      // token handler balance, so burnLockedUSDC will not over-burn even without separate per-chain accounting.
       // Keeping excludedTokens in sync with each in-flight release preserves burnLockedUSDC accounting:
-      // burnableUSDC = lockboxBalance - excludedInFlight.
+      // burnableUSDC = tokenHandlerBalance - excludedInFlight.
     }
     // No excluded tokens is the common path, as it means no migration has occurred yet, and any released
     // tokens should come from the stored token balance of previously deposited tokens.
 
-    // Release to the recipient using the lockbox tied to the remote chain selector.
+    // Release to the recipient using the token handler tied to the remote chain selector.
     _releaseOrMint(
       releaseOrMintIn.receiver, releaseOrMintIn.sourceDenominatedAmount, releaseOrMintIn.remoteChainSelector
     );
@@ -195,7 +195,7 @@ contract SiloedUSDCTokenPool is SiloedLockReleaseTokenPool, AuthorizedCallers {
   /// @dev IMPORTANT: Before calling this function, the lane MUST be paused to prevent new lock or burn / release or mint transactions.
   /// This ensures that the locked-USDC snapshot set via setLockedUSDCToBurn remains valid until the burn.
   /// Without pausing, releases occurring after the snapshot but before the burn could reduce the
-  /// lockbox balance, causing burnLockedUSDC to over-burn.
+  /// token handler balance, causing burnLockedUSDC to over-burn.
   function proposeCCTPMigration(
     uint64 remoteChainSelector
   ) external onlyOwner {
@@ -249,8 +249,8 @@ contract SiloedUSDCTokenPool is SiloedLockReleaseTokenPool, AuthorizedCallers {
   /// @notice Sets the locked-USDC snapshot that burnLockedUSDC should use for the current migration proposal.
   /// @dev The owner computes this value offchain as:
   /// netLockedUSDC = sum(Deposit events) - sum(Withdrawal events)
-  /// on the lockbox configured for the proposed lane. This tracks only bridged liquidity movements and intentionally
-  /// excludes direct token transfers to the lockbox, so burnLockedUSDC cannot burn non-bridged USDC.
+  /// on the token handler configured for the proposed lane. This tracks only bridged liquidity movements and intentionally
+  /// excludes direct token transfers to the token handler, so burnLockedUSDC cannot burn non-bridged USDC.
   /// @param remoteChainSelector The lane being migrated. Must match the active proposal.
   /// @param lockedUSDCToBurn The offchain-computed locked-USDC snapshot for the proposed lane.
   function setLockedUSDCToBurn(
@@ -315,7 +315,7 @@ contract SiloedUSDCTokenPool is SiloedLockReleaseTokenPool, AuthorizedCallers {
     uint64 burnChainSelector = s_proposedUSDCMigrationChain;
     if (burnChainSelector == 0) revert NoMigrationProposalPending();
 
-    ILockBox lockBox = getLockBox(burnChainSelector);
+    ITokenHandler tokenHandler = getTokenHandler(burnChainSelector);
     // Burnable tokens is the owner-set locked snapshot minus the amount excluded from burn.
     uint256 tokensToBurn = s_lockedUSDCToBurn - s_tokensExcludedFromBurn[burnChainSelector];
 
@@ -325,8 +325,8 @@ contract SiloedUSDCTokenPool is SiloedLockReleaseTokenPool, AuthorizedCallers {
     s_migratedChains.add(burnChainSelector);
 
     // The CCTP burn function will attempt to burn out of the contract that calls it, so we need to withdraw the tokens
-    // from the lock box first otherwise the burn will revert.
-    lockBox.withdraw(address(i_token), burnChainSelector, tokensToBurn, address(this));
+    // from the token handler first otherwise the burn will revert.
+    tokenHandler.withdraw(address(i_token), burnChainSelector, tokensToBurn, address(this));
 
     // This should only be called after this contract has been granted a "zero allowance minter role" on USDC by Circle,
     // otherwise the call will revert. Executing this burn will functionally convert all USDC on the destination chain

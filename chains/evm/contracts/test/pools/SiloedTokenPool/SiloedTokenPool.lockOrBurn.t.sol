@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {ILockBox} from "../../../interfaces/ILockBox.sol";
 import {IPoolV2} from "../../../interfaces/IPoolV2.sol";
+import {ITokenHandler} from "../../../interfaces/ITokenHandler.sol";
 
 import {Pool} from "../../../libraries/Pool.sol";
-import {SiloedLockReleaseTokenPool} from "../../../pools/SiloedLockReleaseTokenPool.sol";
+import {SiloedTokenPool} from "../../../pools/SiloedTokenPool.sol";
 import {TokenPool} from "../../../pools/TokenPool.sol";
-import {SiloedLockReleaseTokenPoolSetup} from "./SiloedLockReleaseTokenPoolSetup.t.sol";
+import {SiloedTokenPoolSetup} from "./SiloedTokenPoolSetup.t.sol";
 
 import {IERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/IERC20.sol";
 
-/// @notice Mock lockbox that intentionally leaves dangling allowance for testing.
-contract MockLockBoxWithDanglingAllowance is ILockBox {
+/// @notice Mock token handler that intentionally leaves dangling allowance for testing.
+contract MockTokenHandlerWithDanglingAllowance is ITokenHandler {
   IERC20 internal immutable i_token;
 
   constructor(
@@ -42,13 +42,23 @@ contract MockLockBoxWithDanglingAllowance is ILockBox {
   ) external view returns (bool) {
     return token == address(i_token);
   }
+
+  function isSelectorAllowed(
+    uint64
+  ) external pure returns (bool) {
+    return true;
+  }
+
+  function getMechanism() external pure returns (Mechanism) {
+    return Mechanism.LOCK_RELEASE;
+  }
 }
 
-contract SiloedLockReleaseTokenPool_lockOrBurn is SiloedLockReleaseTokenPoolSetup {
+contract SiloedTokenPool_lockOrBurn is SiloedTokenPoolSetup {
   uint256 public constant AMOUNT = 10e18;
 
   function test_lockOrBurn_SiloedFunds() public {
-    deal(address(s_token), address(s_siloedLockReleaseTokenPool), AMOUNT);
+    deal(address(s_token), address(s_siloedTokenPool), AMOUNT);
 
     vm.startPrank(s_allowedOnRamp);
 
@@ -65,7 +75,7 @@ contract SiloedLockReleaseTokenPool_lockOrBurn is SiloedLockReleaseTokenPoolSetu
       amount: AMOUNT
     });
 
-    s_siloedLockReleaseTokenPool.lockOrBurn(
+    s_siloedTokenPool.lockOrBurn(
       Pool.LockOrBurnInV1({
         originalSender: STRANGER,
         receiver: bytes(""),
@@ -75,12 +85,12 @@ contract SiloedLockReleaseTokenPool_lockOrBurn is SiloedLockReleaseTokenPoolSetu
       })
     );
 
-    assertEq(s_token.balanceOf(address(s_siloedLockReleaseTokenPool.getLockBox(SILOED_CHAIN_SELECTOR))), AMOUNT);
+    assertEq(s_token.balanceOf(address(s_siloedTokenPool.getTokenHandler(SILOED_CHAIN_SELECTOR))), AMOUNT);
   }
 
   function test_lockOrBurn_UnsiloedFunds() public {
     vm.startPrank(s_allowedOnRamp);
-    deal(address(s_token), address(s_siloedLockReleaseTokenPool), AMOUNT);
+    deal(address(s_token), address(s_siloedTokenPool), AMOUNT);
 
     vm.expectEmit();
     emit TokenPool.OutboundRateLimitConsumed({
@@ -95,7 +105,7 @@ contract SiloedLockReleaseTokenPool_lockOrBurn is SiloedLockReleaseTokenPoolSetu
       amount: AMOUNT
     });
 
-    s_siloedLockReleaseTokenPool.lockOrBurn(
+    s_siloedTokenPool.lockOrBurn(
       Pool.LockOrBurnInV1({
         originalSender: STRANGER,
         receiver: bytes(""),
@@ -105,7 +115,7 @@ contract SiloedLockReleaseTokenPool_lockOrBurn is SiloedLockReleaseTokenPoolSetu
       })
     );
 
-    assertEq(s_token.balanceOf(address(s_lockBox)), AMOUNT);
+    assertEq(s_token.balanceOf(address(s_tokenHandler)), AMOUNT);
   }
 
   function test_lockOrBurnV2_SiloedFundsWithFee() public {
@@ -129,14 +139,14 @@ contract SiloedLockReleaseTokenPool_lockOrBurn is SiloedLockReleaseTokenPoolSetu
       destChainSelector: SILOED_CHAIN_SELECTOR, tokenTransferFeeConfig: feeConfig
     });
 
-    s_siloedLockReleaseTokenPool.applyTokenTransferFeeConfigUpdates(feeConfigArgs, new uint64[](0));
+    s_siloedTokenPool.applyTokenTransferFeeConfigUpdates(feeConfigArgs, new uint64[](0));
 
-    uint256 lockBoxBalanceBefore = s_token.balanceOf(address(s_siloLockBox));
-    deal(address(s_token), address(s_siloedLockReleaseTokenPool), amount);
+    uint256 tokenHandlerBalanceBefore = s_token.balanceOf(address(s_siloTokenHandler));
+    deal(address(s_token), address(s_siloedTokenPool), amount);
 
     vm.startPrank(s_allowedOnRamp);
 
-    (, uint256 destTokenAmount) = s_siloedLockReleaseTokenPool.lockOrBurn(
+    (, uint256 destTokenAmount) = s_siloedTokenPool.lockOrBurn(
       Pool.LockOrBurnInV1({
         originalSender: STRANGER,
         receiver: bytes(""),
@@ -149,20 +159,21 @@ contract SiloedLockReleaseTokenPool_lockOrBurn is SiloedLockReleaseTokenPoolSetu
     );
 
     assertEq(destTokenAmount, expectedDestAmount);
-    assertEq(s_token.balanceOf(address(s_siloLockBox)), lockBoxBalanceBefore + expectedDestAmount);
-    assertEq(s_token.balanceOf(address(s_siloedLockReleaseTokenPool)), expectedFee);
+    assertEq(s_token.balanceOf(address(s_siloTokenHandler)), tokenHandlerBalanceBefore + expectedDestAmount);
+    assertEq(s_token.balanceOf(address(s_siloedTokenPool)), expectedFee);
   }
 
   function test_lockOrBurn_ResetsAllowanceAfterDeposit() public {
-    // Create a mock lockbox that leaves dangling allowance.
-    MockLockBoxWithDanglingAllowance mockLockBox = new MockLockBoxWithDanglingAllowance(address(s_token));
+    // Create a mock token handler that leaves dangling allowance.
+    MockTokenHandlerWithDanglingAllowance mockTokenHandler = new MockTokenHandlerWithDanglingAllowance(address(s_token));
 
-    // Configure the mock lockbox for a new chain selector.
+    // Configure the mock token handler for a new chain selector.
     uint64 testChainSelector = 99999;
-    SiloedLockReleaseTokenPool.LockBoxConfig[] memory lockBoxConfigs = new SiloedLockReleaseTokenPool.LockBoxConfig[](1);
-    lockBoxConfigs[0] =
-      SiloedLockReleaseTokenPool.LockBoxConfig({remoteChainSelector: testChainSelector, lockBox: address(mockLockBox)});
-    s_siloedLockReleaseTokenPool.configureLockBoxes(lockBoxConfigs);
+    SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](1);
+    tokenHandlers[0] = SiloedTokenPool.TokenHandlerConfig({
+      remoteChainSelector: testChainSelector, tokenHandler: address(mockTokenHandler)
+    });
+    s_siloedTokenPool.configureTokenHandlers(tokenHandlers);
 
     // Configure chain for the pool.
     bytes[] memory remotePoolAddresses = new bytes[](1);
@@ -176,17 +187,17 @@ contract SiloedLockReleaseTokenPool_lockOrBurn is SiloedLockReleaseTokenPoolSetu
       outboundRateLimiterConfig: _getOutboundRateLimiterConfig(),
       inboundRateLimiterConfig: _getInboundRateLimiterConfig()
     });
-    s_siloedLockReleaseTokenPool.applyChainUpdates(new uint64[](0), chainUpdates);
+    s_siloedTokenPool.applyChainUpdates(new uint64[](0), chainUpdates);
 
     // Add onRamp for the test chain.
     _setMockRouterOnRamp(address(s_sourceRouter), testChainSelector, s_allowedOnRamp);
 
     // Fund the pool.
-    deal(address(s_token), address(s_siloedLockReleaseTokenPool), AMOUNT);
+    deal(address(s_token), address(s_siloedTokenPool), AMOUNT);
 
     vm.stopPrank();
     vm.prank(s_allowedOnRamp);
-    s_siloedLockReleaseTokenPool.lockOrBurn(
+    s_siloedTokenPool.lockOrBurn(
       Pool.LockOrBurnInV1({
         originalSender: STRANGER,
         receiver: bytes(""),
@@ -197,6 +208,6 @@ contract SiloedLockReleaseTokenPool_lockOrBurn is SiloedLockReleaseTokenPoolSetu
     );
 
     // Verify the allowance is reset to 0 after the deposit.
-    assertEq(s_token.allowance(address(s_siloedLockReleaseTokenPool), address(mockLockBox)), 0);
+    assertEq(s_token.allowance(address(s_siloedTokenPool), address(mockTokenHandler)), 0);
   }
 }

@@ -35,7 +35,7 @@ contract SiloedUSDCTokenPool_burnLockedUSDC is SiloedUSDCTokenPoolSetup {
     );
 
     // Ensure that the tokens are properly locked
-    assertEq(s_USDCToken.balanceOf(address(s_destLockBox)), amount, "Incorrect token amount in the tokenPool");
+    assertEq(s_USDCToken.balanceOf(address(s_destTokenHandler)), amount, "Incorrect token amount in the tokenPool");
 
     vm.startPrank(OWNER);
 
@@ -73,7 +73,7 @@ contract SiloedUSDCTokenPool_burnLockedUSDC is SiloedUSDCTokenPoolSetup {
     // Ensure the proposal slot was cleared and there's no tokens locked for the destination chain anymore
     assertEq(s_usdcTokenPool.getCurrentProposedCCTPChainMigration(), 0);
     assertEq(
-      s_USDCToken.balanceOf(address(s_destLockBox)),
+      s_USDCToken.balanceOf(address(s_destTokenHandler)),
       0,
       "No tokens should be locked for DEST_CHAIN_SELECTOR after CCTP-approved burn"
     );
@@ -96,8 +96,8 @@ contract SiloedUSDCTokenPool_burnLockedUSDC is SiloedUSDCTokenPoolSetup {
       })
     );
 
-    // Simulate external USDC sent directly to the lockbox, bypassing bridge accounting.
-    deal(address(s_USDCToken), address(s_destLockBox), bridgedLockedAmount + directDonationAmount);
+    // Simulate external USDC sent directly to the token handler, bypassing bridge accounting.
+    deal(address(s_USDCToken), address(s_destTokenHandler), bridgedLockedAmount + directDonationAmount);
 
     vm.startPrank(OWNER);
     s_usdcTokenPool.setCircleMigratorAddress(CIRCLE);
@@ -110,7 +110,7 @@ contract SiloedUSDCTokenPool_burnLockedUSDC is SiloedUSDCTokenPoolSetup {
     vm.stopPrank();
 
     // The direct donation should not be burned.
-    assertEq(s_USDCToken.balanceOf(address(s_destLockBox)), directDonationAmount);
+    assertEq(s_USDCToken.balanceOf(address(s_destTokenHandler)), directDonationAmount);
   }
 
   // Reverts

@@ -17,8 +17,8 @@ contract SiloedUSDCTokenPool_releaseOrMint is SiloedUSDCTokenPoolSetup {
   function setUp() public virtual override {
     super.setUp();
 
-    // Provide default liquidity to the source lockbox
-    deal(address(s_USDCToken), address(s_sourceLockBox), DEFAULT_LIQUIDITY);
+    // Provide default liquidity to the source token handler
+    deal(address(s_USDCToken), address(s_sourceTokenHandler), DEFAULT_LIQUIDITY);
 
     // Mock the router's isOffRamp function to return true for the allowed off ramp
     vm.mockCall(
@@ -62,7 +62,7 @@ contract SiloedUSDCTokenPool_releaseOrMint is SiloedUSDCTokenPoolSetup {
 
     assertEq(result.destinationAmount, localAmount);
     assertEq(s_USDCToken.balanceOf(s_recipient), localAmount);
-    assertEq(s_USDCToken.balanceOf(address(s_sourceLockBox)), 0);
+    assertEq(s_USDCToken.balanceOf(address(s_sourceTokenHandler)), 0);
   }
 
   function test_releaseOrMintV2_Success() public {
@@ -87,7 +87,7 @@ contract SiloedUSDCTokenPool_releaseOrMint is SiloedUSDCTokenPoolSetup {
 
     assertEq(result.destinationAmount, localAmount);
     assertEq(s_USDCToken.balanceOf(s_recipient), localAmount);
-    assertEq(s_USDCToken.balanceOf(address(s_sourceLockBox)), 0);
+    assertEq(s_USDCToken.balanceOf(address(s_sourceTokenHandler)), 0);
   }
 
   function test_releaseOrMint_SubtractsFromExcludedTokens() public {
@@ -123,7 +123,7 @@ contract SiloedUSDCTokenPool_releaseOrMint is SiloedUSDCTokenPoolSetup {
     vm.startPrank(s_routerAllowedOffRamp);
     Pool.ReleaseOrMintOutV1 memory result = s_usdcTokenPool.releaseOrMint(releaseOrMintIn);
 
-    uint256 availableTokens = s_USDCToken.balanceOf(address(s_sourceLockBox));
+    uint256 availableTokens = s_USDCToken.balanceOf(address(s_sourceTokenHandler));
     assertEq(availableTokens, DEFAULT_LIQUIDITY - releaseAmount);
     uint256 newExcludedAmount = s_usdcTokenPool.getExcludedTokensByChain(SOURCE_CHAIN_SELECTOR);
     assertEq(newExcludedAmount, excludedAmount - releaseAmount);
@@ -200,9 +200,9 @@ contract SiloedUSDCTokenPool_releaseOrMint is SiloedUSDCTokenPoolSetup {
 
     assertEq(s_usdcTokenPool.getExcludedTokensByChain(SOURCE_CHAIN_SELECTOR), 0);
 
-    // Simulate unexpected liquidity appearing in the lockbox after migration.
+    // Simulate unexpected liquidity appearing in the token handler after migration.
     uint256 unexpectedLiquidity = 100e6;
-    deal(address(s_USDCToken), address(s_sourceLockBox), unexpectedLiquidity);
+    deal(address(s_USDCToken), address(s_sourceTokenHandler), unexpectedLiquidity);
 
     releaseOrMintIn.sourceDenominatedAmount = unexpectedLiquidity;
 

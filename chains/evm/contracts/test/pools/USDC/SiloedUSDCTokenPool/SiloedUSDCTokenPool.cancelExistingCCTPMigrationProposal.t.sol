@@ -20,9 +20,9 @@ contract SiloedUSDCTokenPool_cancelExistingCCTPMigrationProposal is SiloedUSDCTo
   }
 
   function test_cancelExistingCCTPMigrationProposal_ResetsExcludedTokens() public {
-    // Provide some amount of liquidity to the lockbox
+    // Provide some amount of liquidity to the token handler
     uint256 amount = 100e6;
-    deal(address(s_USDCToken), address(s_destLockBox), amount);
+    deal(address(s_USDCToken), address(s_destTokenHandler), amount);
 
     // Propose migration and exclude some tokens
     s_usdcTokenPool.proposeCCTPMigration(DEST_CHAIN_SELECTOR);
