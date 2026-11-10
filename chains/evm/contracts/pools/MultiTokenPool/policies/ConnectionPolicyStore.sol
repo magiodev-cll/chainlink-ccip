@@ -2,9 +2,9 @@
 pragma solidity ^0.8.24;
 
 import {IAdditionalPoolDataProvider} from "../../../interfaces/IAdditionalPoolDataProvider.sol";
-import {ILockBox} from "../../../interfaces/ILockBox.sol";
 import {IPoolConfigManager} from "../../../interfaces/IPoolConfigManager.sol";
 import {IRemoteTokenAddressProvider} from "../../../interfaces/IRemoteTokenAddressProvider.sol";
+import {ITokenHandler} from "../../../interfaces/ITokenHandler.sol";
 import {ITypeAndVersion} from "@chainlink/contracts/src/v0.8/shared/interfaces/ITypeAndVersion.sol";
 
 import {FinalityCodec} from "../../../libraries/FinalityCodec.sol";
@@ -169,7 +169,7 @@ contract ConnectionPolicyStore is ITypeAndVersion, AuthorizedCallers {
     bool isRegistered; // ───────────────────────────────────╮ True if the token is registered.
     uint8 localDecimals; //                                  │ The decimals of the local token.
     IPoolConfigManager.LockOrBurnFlavor lockOrBurnFlavor; // │ The token operation used for outbound transfers.
-    address lockOrBurnAddress; //                            │ The BurnToAddress target or LockBox address.
+    address lockOrBurnAddress; //                            │ The BurnToAddress target or token handler address.
     bytes4 allowedFinalityConfig; //                         │ Allowed finality.
     bool isOutboundPaused; //                                │ Whether outbound transfers are paused for this token.
     bool isInboundPaused; // ────────────────────────────────╯ Whether inbound transfers are paused for this token.
@@ -179,7 +179,7 @@ contract ConnectionPolicyStore is ITypeAndVersion, AuthorizedCallers {
   /// @notice Token profile, pause flags, and assigned policies.
   /// @dev Only the pause functions change the pause flags.
   struct TokenState {
-    address lockOrBurnAddress; // ───────────────────────────╮ The BurnToAddress target or LockBox address.
+    address lockOrBurnAddress; // ───────────────────────────╮ The BurnToAddress target or token handler address.
     uint8 localDecimals; //                                  │ The decimals of the local token.
     IPoolConfigManager.LockOrBurnFlavor lockOrBurnFlavor; // │ The token operation used for outbound transfers.
     bytes4 allowedFinalityConfig; //                         │ Allowed finality.
@@ -1218,7 +1218,7 @@ contract ConnectionPolicyStore is ITypeAndVersion, AuthorizedCallers {
     if (provider != address(0) && provider.code.length == 0) revert ProviderHasNoCode(provider);
   }
 
-  /// @dev Lock requires a LockBox that supports the token. BurnToAddress accepts any address, matching
+  /// @dev Lock requires a token handler that supports the token. BurnToAddress accepts any address, matching
   /// BurnToAddressMintTokenPool. All other flavors require a zero lockOrBurnAddress address.
   function _validateLockOrBurnAddress(
     address localToken,
@@ -1226,7 +1226,7 @@ contract ConnectionPolicyStore is ITypeAndVersion, AuthorizedCallers {
     address lockOrBurnAddress
   ) private view {
     if (lockOrBurnFlavor == IPoolConfigManager.LockOrBurnFlavor.Lock) {
-      if (lockOrBurnAddress == address(0) || !ILockBox(lockOrBurnAddress).isTokenSupported(localToken)) {
+      if (lockOrBurnAddress == address(0) || !ITokenHandler(lockOrBurnAddress).isTokenSupported(localToken)) {
         revert InvalidLockOrBurnAddress(localToken, lockOrBurnFlavor, lockOrBurnAddress);
       }
     } else if (lockOrBurnFlavor != IPoolConfigManager.LockOrBurnFlavor.BurnToAddress && lockOrBurnAddress != address(0))

@@ -33,6 +33,35 @@ contract ERC20BurnMintTokenHandler_withdraw is ERC20BurnMintTokenHandlerSetup {
     assertEq(s_token.balanceOf(s_recipient), amount);
   }
 
+  function testFuzz_withdraw_MintsToRecipient(
+    uint256 amount
+  ) public {
+    amount = bound(amount, 1, 1_000_000e18);
+    uint256 supplyBefore = s_token.totalSupply();
+
+    vm.startPrank(s_bridgeCaller);
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, amount, s_recipient);
+    vm.stopPrank();
+
+    assertEq(s_token.balanceOf(s_recipient), amount);
+    assertEq(s_token.totalSupply(), supplyBefore + amount);
+  }
+
+  function test_withdraw_MultipleMints() public {
+    address recipient1 = makeAddr("recipient1");
+    address recipient2 = makeAddr("recipient2");
+    uint256 supplyBefore = s_token.totalSupply();
+
+    vm.startPrank(s_bridgeCaller);
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 300e18, recipient1);
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 250e18, recipient2);
+    vm.stopPrank();
+
+    assertEq(s_token.balanceOf(recipient1), 300e18);
+    assertEq(s_token.balanceOf(recipient2), 250e18);
+    assertEq(s_token.totalSupply(), supplyBefore + 550e18);
+  }
+
   function test_withdraw_RevertWhen_MaxAmount() public {
     vm.startPrank(s_bridgeCaller);
     vm.expectRevert(ERC20BurnMintTokenHandler.MaxAmountNotSupported.selector);

@@ -29,7 +29,7 @@ contract LockReleaseTokenPool_releaseOrMint is LockReleaseTokenPoolSetup {
     vm.startPrank(s_allowedOffRamp);
 
     uint256 amount = 100;
-    deal(address(s_token), address(s_lockBox), amount);
+    deal(address(s_token), address(s_tokenHandler), amount);
 
     vm.expectEmit();
     emit TokenPool.InboundRateLimitConsumed({
@@ -63,8 +63,8 @@ contract LockReleaseTokenPool_releaseOrMint is LockReleaseTokenPoolSetup {
     uint256 amount = 100e18;
     address recipient = makeAddr("recipient");
 
-    // Fund lockBox.
-    deal(address(s_token), address(s_lockBox), amount);
+    // Fund tokenHandler.
+    deal(address(s_token), address(s_tokenHandler), amount);
 
     vm.startPrank(s_allowedOffRamp);
 
@@ -96,8 +96,8 @@ contract LockReleaseTokenPool_releaseOrMint is LockReleaseTokenPoolSetup {
     vm.assume(recipient != address(s_token));
     amount = bound(amount, 1, _getInboundRateLimiterConfig().capacity);
 
-    // Makes sure the lockBox always has enough funds.
-    deal(address(s_token), address(s_lockBox), amount);
+    // Makes sure the tokenHandler always has enough funds.
+    deal(address(s_token), address(s_tokenHandler), amount);
     vm.startPrank(s_allowedOffRamp);
 
     // Amount is bounded to capacity, so it should always succeed.

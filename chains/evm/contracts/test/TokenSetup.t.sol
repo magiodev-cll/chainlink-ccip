@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IBurnMintERC20} from "../interfaces/IBurnMintERC20.sol";
 import {BurnMintTokenPool} from "../pools/BurnMintTokenPool.sol";
-import {ERC20LockBox} from "../pools/ERC20LockBox.sol";
+import {ERC20LockReleaseTokenHandler} from "../pools/ERC20LockReleaseTokenHandler.sol";
 import {LockReleaseTokenPool} from "../pools/LockReleaseTokenPool.sol";
 import {TokenPool} from "../pools/TokenPool.sol";
 import {TokenAdminRegistry} from "../tokenAdminRegistry/TokenAdminRegistry.sol";
@@ -17,7 +17,7 @@ import {IERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/IERC20.sol";
 /// tokens through pools should inherit this, others should inherit TokenFixture to keep pools out of their compile
 /// scope.
 contract TokenSetup is TokenFixture {
-  mapping(address token => ERC20LockBox lockBox) internal s_lockBoxes;
+  mapping(address token => ERC20LockReleaseTokenHandler tokenHandler) internal s_tokenHandlers;
 
   function _deployLockReleasePool(
     address token,
@@ -28,18 +28,21 @@ contract TokenSetup is TokenFixture {
       router = address(s_destRouter);
     }
 
-    ERC20LockBox lockBox = new ERC20LockBox(token);
-    s_lockBoxes[token] = lockBox;
+    ERC20LockReleaseTokenHandler tokenHandler = new ERC20LockReleaseTokenHandler(token);
+    s_tokenHandlers[token] = tokenHandler;
+
+    uint64 remoteChainSelector = isSourcePool ? DEST_CHAIN_SELECTOR : SOURCE_CHAIN_SELECTOR;
+    tokenHandler.setSelectorAllowed(remoteChainSelector, true);
 
     LockReleaseTokenPool pool = new LockReleaseTokenPool(
-      IERC20(token), DEFAULT_TOKEN_DECIMALS, address(0), address(s_mockRMNRemote), router, address(lockBox)
+      IERC20(token), DEFAULT_TOKEN_DECIMALS, address(0), address(s_mockRMNRemote), router, address(tokenHandler)
     );
 
     address[] memory authorizedCallers = new address[](1);
     authorizedCallers[0] = address(pool);
     AuthorizedCallers.AuthorizedCallerArgs memory args =
       AuthorizedCallers.AuthorizedCallerArgs({addedCallers: authorizedCallers, removedCallers: new address[](0)});
-    lockBox.applyAuthorizedCallerUpdates(args);
+    tokenHandler.applyAuthorizedCallerUpdates(args);
 
     if (isSourcePool) {
       s_sourcePoolByToken[address(token)] = address(pool);
@@ -94,7 +97,7 @@ contract TokenSetup is TokenFixture {
     s_destPoolBySourceToken[s_sourceTokens[2]] = s_destPoolByToken[s_destTokens[2]];
 
     // Float the dest link lock release pool with funds.
-    IERC20(s_destTokens[0]).transfer(address(s_lockBoxes[s_destTokens[0]]), 1000 ether);
+    IERC20(s_destTokens[0]).transfer(address(s_tokenHandlers[s_destTokens[0]]), 1000 ether);
 
     // Set pools in the registry.
     for (uint256 i = 0; i < s_sourceTokens.length; ++i) {

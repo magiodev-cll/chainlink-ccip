@@ -54,4 +54,6 @@ func TestPoolTypePredicates_StandardTypes(t *testing.T) {
 	// Intentionally excluded from both: see the predicate doc comments.
 	require.False(t, IsLockReleasePoolType(HybridLockReleaseUSDCTokenPool.String()))
 	require.False(t, IsLockReleasePoolType(BurnMintWithLockReleaseFlag.String()))
+	require.False(t, IsLockReleasePoolType(SiloedTokenPool.String()))
+	require.False(t, IsBurnMintPoolType(SiloedTokenPool.String()))
 }

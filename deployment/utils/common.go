@@ -49,6 +49,7 @@ const (
 	ERC677TokenHelper                   cldf.ContractType = "ERC677TokenHelper"
 	USDCTokenPool                       cldf.ContractType = "USDCTokenPool"
 	CCTPMessageTransmitterProxy         cldf.ContractType = "CCTPMessageTransmitterProxy"
+	SiloedTokenPool                     cldf.ContractType = "SiloedTokenPool"
 	SiloedLockReleaseTokenPool          cldf.ContractType = "SiloedLockReleaseTokenPool"
 	HybridLockReleaseUSDCTokenPool      cldf.ContractType = "HybridLockReleaseUSDCTokenPool"
 	BurnMintWithExternalMinterTokenPool cldf.ContractType = "BurnMintWithExternalMinterTokenPool"
@@ -59,10 +60,13 @@ const (
 	// LockReleaseTokenPoolAndProxy is the v1.5.0 lock-release pool, which is its own proxy (one
 	// contract, one address). Like BurnMintTokenPoolAndProxy it has no equivalent at v1.5.1 or
 	// later.
-	LockReleaseTokenPoolAndProxy cldf.ContractType = "LockReleaseTokenPoolAndProxy"
-	BurnMintWithLockReleaseFlag  cldf.ContractType = "BurnMintWithLockReleaseFlag"
-	TokenGovernor                cldf.ContractType = "TokenGovernor"
-	ERC20LockBox                 cldf.ContractType = "ERC20LockBox"
+	LockReleaseTokenPoolAndProxy    cldf.ContractType = "LockReleaseTokenPoolAndProxy"
+	BurnMintWithLockReleaseFlag     cldf.ContractType = "BurnMintWithLockReleaseFlag"
+	TokenGovernor                   cldf.ContractType = "TokenGovernor"
+	ERC20LockBox                    cldf.ContractType = "ERC20LockBox"
+	ERC20LockReleaseTokenHandler    cldf.ContractType = "ERC20LockReleaseTokenHandler"
+	ERC20BurnMintTokenHandler       cldf.ContractType = "ERC20BurnMintTokenHandler"
+	ERC20ExternalMinterTokenHandler cldf.ContractType = "ERC20ExternalMinterTokenHandler"
 
 	// CLL Identifiers
 	CLLQualifier         = "CLLCCIP"
@@ -75,6 +79,8 @@ const (
 // IsLockReleasePoolType reports whether poolType is a standard or siloed lock-release pool.
 // HybridLockReleaseUSDCTokenPool and BurnMintWithLockReleaseFlag are intentionally excluded:
 // the former uses the CCTP hybrid migration path; the latter is not a lock-release pool.
+// SiloedTokenPool is also excluded: it is mechanism-agnostic and routes each selector to a token
+// handler, so it has its own deploy path.
 //
 // LockReleaseTokenPoolAndProxy (the v1.5.0 lock-release pool) is also excluded, deliberately and
 // asymmetrically with IsBurnMintPoolType below. The sole consumer of this predicate is the v2.0.0
@@ -88,6 +94,8 @@ func IsLockReleasePoolType(poolType string) bool {
 }
 
 // IsBurnMintPoolType reports whether poolType is a standard burn-mint pool variant.
+// SiloedTokenPool is excluded: it is mechanism-agnostic and routes each selector to a token
+// handler, so it has its own deploy path.
 //
 // BurnMintTokenPoolAndProxy is included because the mint/burn role grant in
 // EVMPoolAdapter.TidyTokenPoolRoles is gated on this predicate and the v1.5.0 pool needs it. That is

@@ -19,6 +19,14 @@ contract ERC20LockReleaseTokenHandler_config is ERC20LockReleaseTokenHandlerSetu
     assertTrue(s_handler.getMechanism() == ITokenHandler.Mechanism.LOCK_RELEASE);
   }
 
+  function test_typeAndVersion() public view {
+    assertEq(s_handler.typeAndVersion(), "ERC20LockReleaseTokenHandler 2.0.0");
+  }
+
+  function test_getToken() public view {
+    assertEq(address(s_handler.getToken()), address(s_token));
+  }
+
   function test_setSelectorAllowed() public {
     vm.expectEmit();
     emit TokenHandler.SelectorAllowedSet(OTHER_CHAIN_SELECTOR, true);

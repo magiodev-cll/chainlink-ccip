@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {AdvancedPoolHooks} from "../../../pools/AdvancedPoolHooks.sol";
-import {ERC20LockBox} from "../../../pools/ERC20LockBox.sol";
+import {ERC20LockReleaseTokenHandler} from "../../../pools/ERC20LockReleaseTokenHandler.sol";
 import {LockReleaseTokenPool} from "../../../pools/LockReleaseTokenPool.sol";
 import {TokenPool} from "../../../pools/TokenPool.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
@@ -24,7 +24,7 @@ contract LockReleaseTokenPoolSetup is BaseTest {
   address internal s_destPoolAddress = address(2736782345);
   address internal s_sourcePoolAddress = address(53852352095);
 
-  ERC20LockBox internal s_lockBox;
+  ERC20LockReleaseTokenHandler internal s_tokenHandler;
 
   function setUp() public virtual override {
     super.setUp();
@@ -47,10 +47,17 @@ contract LockReleaseTokenPoolSetup is BaseTest {
     );
     deal(address(s_token), OWNER, type(uint256).max);
 
-    s_lockBox = new ERC20LockBox(address(s_token));
+    s_tokenHandler = new ERC20LockReleaseTokenHandler(address(s_token));
+    s_tokenHandler.setSelectorAllowed(DEST_CHAIN_SELECTOR, true);
+    s_tokenHandler.setSelectorAllowed(SOURCE_CHAIN_SELECTOR, true);
 
     s_lockReleaseTokenPool = new LockReleaseTokenPool(
-      s_token, DEFAULT_TOKEN_DECIMALS, address(0), address(s_mockRMNRemote), address(s_sourceRouter), address(s_lockBox)
+      s_token,
+      DEFAULT_TOKEN_DECIMALS,
+      address(0),
+      address(s_mockRMNRemote),
+      address(s_sourceRouter),
+      address(s_tokenHandler)
     );
 
     s_allowedList.push(vm.randomAddress());
@@ -62,7 +69,7 @@ contract LockReleaseTokenPoolSetup is BaseTest {
       address(advancedHooks),
       address(s_mockRMNRemote),
       address(s_sourceRouter),
-      address(s_lockBox)
+      address(s_tokenHandler)
     );
 
     address[] memory hooksCallers = new address[](1);
@@ -71,11 +78,11 @@ contract LockReleaseTokenPoolSetup is BaseTest {
       AuthorizedCallers.AuthorizedCallerArgs({addedCallers: hooksCallers, removedCallers: new address[](0)})
     );
 
-    // Configure allowed callers for the lockBox - both pools.
+    // Configure allowed callers for the tokenHandler - both pools.
     address[] memory allowedCallers = new address[](2);
     allowedCallers[0] = address(s_lockReleaseTokenPool);
     allowedCallers[1] = address(s_lockReleaseTokenPoolWithAllowList);
-    s_lockBox.applyAuthorizedCallerUpdates(
+    s_tokenHandler.applyAuthorizedCallerUpdates(
       AuthorizedCallers.AuthorizedCallerArgs({addedCallers: allowedCallers, removedCallers: new address[](0)})
     );
 

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {ILockBox} from "../../../../../interfaces/ILockBox.sol";
 import {IPoolConfigManager} from "../../../../../interfaces/IPoolConfigManager.sol";
+import {ITokenHandler} from "../../../../../interfaces/ITokenHandler.sol";
 
 import {PolicyConfig} from "../../../../../libraries/PolicyConfig.sol";
 import {ConnectionPolicyStore} from "../../../../../pools/MultiTokenPool/policies/ConnectionPolicyStore.sol";
@@ -17,12 +17,12 @@ contract ConnectionPolicyStore_applyTokenProfileUpdates is ConnectionPolicyStore
   address internal s_newToken;
   address internal s_burnAddress = makeAddr("burnAddress");
   /// @dev Has code. Each test mocks whether it supports s_newToken.
-  address internal s_lockBox = makeAddr("lockBox");
+  address internal s_tokenHandler = makeAddr("tokenHandler");
 
   function setUp() public override {
     super.setUp();
     s_newToken = address(_deployToken("NEW", NEW_TOKEN_DECIMALS));
-    vm.etch(s_lockBox, hex"00");
+    vm.etch(s_tokenHandler, hex"00");
   }
 
   function test_applyTokenProfileUpdates() public {
@@ -81,8 +81,8 @@ contract ConnectionPolicyStore_applyTokenProfileUpdates is ConnectionPolicyStore
   function test_applyTokenProfileUpdates_LockFlavor() public {
     PolicyConfig.TokenProfileArgs[] memory profiles = _getTokenProfileArgs(s_newToken);
     profiles[0].lockOrBurnFlavor = IPoolConfigManager.LockOrBurnFlavor.Lock;
-    profiles[0].lockOrBurnAddress = s_lockBox;
-    _mockLockBoxSupportsToken(true);
+    profiles[0].lockOrBurnAddress = s_tokenHandler;
+    _mockTokenHandlerSupportsToken(true);
 
     s_connectionStore.applyTokenProfileUpdates(new address[](0), profiles);
 
@@ -198,14 +198,14 @@ contract ConnectionPolicyStore_applyTokenProfileUpdates is ConnectionPolicyStore
   }
 
   function test_applyTokenProfileUpdates_RevertWhen_InvalidLockOrBurnAddress() public {
-    // Lock requires a compatible LockBox. Burn, BurnFrom, and BurnWithFrom require a zero target address.
+    // Lock requires a compatible token handler. Burn, BurnFrom, and BurnWithFrom require a zero target address.
     IPoolConfigManager.LockOrBurnFlavor[] memory flavors = new IPoolConfigManager.LockOrBurnFlavor[](5);
     address[] memory lockOrBurnAddresses = new address[](5);
     flavors[0] = IPoolConfigManager.LockOrBurnFlavor.Lock;
     flavors[1] = IPoolConfigManager.LockOrBurnFlavor.Lock;
     // A lock box that does not support the token.
-    lockOrBurnAddresses[1] = s_lockBox;
-    _mockLockBoxSupportsToken(false);
+    lockOrBurnAddresses[1] = s_tokenHandler;
+    _mockTokenHandlerSupportsToken(false);
     flavors[2] = IPoolConfigManager.LockOrBurnFlavor.Burn;
     lockOrBurnAddresses[2] = s_burnAddress;
     flavors[3] = IPoolConfigManager.LockOrBurnFlavor.BurnFrom;
@@ -273,10 +273,10 @@ contract ConnectionPolicyStore_applyTokenProfileUpdates is ConnectionPolicyStore
     s_connectionStore.applyTokenProfileUpdates(new address[](0), profiles);
   }
 
-  function _mockLockBoxSupportsToken(
+  function _mockTokenHandlerSupportsToken(
     bool isSupported
   ) private {
-    vm.mockCall(s_lockBox, abi.encodeCall(ILockBox.isTokenSupported, (s_newToken)), abi.encode(isSupported));
+    vm.mockCall(s_tokenHandler, abi.encodeCall(ITokenHandler.isTokenSupported, (s_newToken)), abi.encode(isSupported));
   }
 
   function _expectTokenHasConfigRevert() private {
