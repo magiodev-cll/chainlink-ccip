@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {BurnMintTokenHandler} from "../../../pools/BurnMintTokenHandler.sol";
+import {ERC20BurnMintTokenHandler} from "../../../pools/ERC20BurnMintTokenHandler.sol";
 import {SiloedTokenPool} from "../../../pools/SiloedTokenPool.sol";
 import {TokenPool} from "../../../pools/TokenPool.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
@@ -21,7 +21,7 @@ contract SiloedTokenPool_burnMint is BaseTest {
   address internal constant REMOTE_POOL = address(999);
 
   CrossChainToken internal s_token;
-  BurnMintTokenHandler internal s_handler;
+  ERC20BurnMintTokenHandler internal s_handler;
   SiloedTokenPool internal s_pool;
 
   function setUp() public override {
@@ -36,7 +36,7 @@ contract SiloedTokenPool_burnMint is BaseTest {
     );
     s_token.grantMintAndBurnRoles(OWNER);
 
-    s_handler = new BurnMintTokenHandler(address(s_token));
+    s_handler = new ERC20BurnMintTokenHandler(address(s_token));
     s_token.grantMintAndBurnRoles(address(s_handler));
     s_handler.setSelectorAllowed(REMOTE_CHAIN_SELECTOR, true);
 

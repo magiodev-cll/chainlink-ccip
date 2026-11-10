@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {BurnMintTokenHandler} from "../../../pools/BurnMintTokenHandler.sol";
+import {ERC20BurnMintTokenHandler} from "../../../pools/ERC20BurnMintTokenHandler.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
 import {CrossChainToken} from "../../../tokens/CrossChainToken.sol";
 import {BaseTest} from "../../BaseTest.t.sol";
 import {AuthorizedCallers} from "@chainlink/contracts/src/v0.8/shared/access/AuthorizedCallers.sol";
 
-contract BurnMintTokenHandlerSetup is BaseTest {
+contract ERC20BurnMintTokenHandlerSetup is BaseTest {
   CrossChainToken internal s_token;
-  BurnMintTokenHandler internal s_handler;
+  ERC20BurnMintTokenHandler internal s_handler;
   address internal s_bridgeCaller = makeAddr("bridge_caller");
   address internal s_adminCaller = makeAddr("admin_caller");
   address internal s_recipient = makeAddr("recipient");
@@ -33,7 +33,7 @@ contract BurnMintTokenHandlerSetup is BaseTest {
       OWNER
     );
 
-    s_handler = new BurnMintTokenHandler(address(s_token));
+    s_handler = new ERC20BurnMintTokenHandler(address(s_token));
 
     s_token.grantMintAndBurnRoles(address(s_handler));
     s_token.grantMintAndBurnRoles(OWNER);

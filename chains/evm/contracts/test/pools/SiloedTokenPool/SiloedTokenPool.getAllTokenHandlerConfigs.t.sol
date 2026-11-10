@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {ERC20LockBoxTokenHandler} from "../../../pools/ERC20LockBoxTokenHandler.sol";
+import {ERC20LockReleaseTokenHandler} from "../../../pools/ERC20LockReleaseTokenHandler.sol";
 import {SiloedTokenPool} from "../../../pools/SiloedTokenPool.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
 import {CrossChainToken} from "../../../tokens/CrossChainToken.sol";
@@ -16,8 +16,8 @@ contract SiloedTokenPool_getAllTokenHandlerConfigs is BaseTest {
 
   IERC20 internal s_token;
   SiloedTokenPool internal s_pool;
-  ERC20LockBoxTokenHandler internal s_sharedTokenHandler;
-  ERC20LockBoxTokenHandler internal s_isolatedTokenHandler;
+  ERC20LockReleaseTokenHandler internal s_sharedTokenHandler;
+  ERC20LockReleaseTokenHandler internal s_isolatedTokenHandler;
 
   function setUp() public override {
     super.setUp();
@@ -44,8 +44,8 @@ contract SiloedTokenPool_getAllTokenHandlerConfigs is BaseTest {
       s_token, DEFAULT_TOKEN_DECIMALS, address(0), address(s_mockRMNRemote), address(s_sourceRouter)
     );
 
-    s_sharedTokenHandler = new ERC20LockBoxTokenHandler(address(s_token));
-    s_isolatedTokenHandler = new ERC20LockBoxTokenHandler(address(s_token));
+    s_sharedTokenHandler = new ERC20LockReleaseTokenHandler(address(s_token));
+    s_isolatedTokenHandler = new ERC20LockReleaseTokenHandler(address(s_token));
     s_sharedTokenHandler.setSelectorAllowed(CHAIN_A, true);
     s_sharedTokenHandler.setSelectorAllowed(CHAIN_B, true);
     s_isolatedTokenHandler.setSelectorAllowed(CHAIN_C, true);

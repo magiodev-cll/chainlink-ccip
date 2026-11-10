@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {ERC20LockBox} from "../../../pools/ERC20LockBox.sol";
-import {ERC20LockBoxTokenHandler} from "../../../pools/ERC20LockBoxTokenHandler.sol";
+import {ERC20LockReleaseTokenHandler} from "../../../pools/ERC20LockReleaseTokenHandler.sol";
 import {SiloedTokenPool} from "../../../pools/SiloedTokenPool.sol";
 import {TokenPool} from "../../../pools/TokenPool.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
@@ -52,7 +52,7 @@ contract SiloedTokenPool_configureTokenHandlers is BaseTest {
   }
 
   function test_configureTokenHandlers() public {
-    ERC20LockBoxTokenHandler tokenHandler = new ERC20LockBoxTokenHandler(address(s_token));
+    ERC20LockReleaseTokenHandler tokenHandler = new ERC20LockReleaseTokenHandler(address(s_token));
     tokenHandler.setSelectorAllowed(SILOED_CHAIN_SELECTOR, true);
 
     SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](1);
@@ -68,7 +68,7 @@ contract SiloedTokenPool_configureTokenHandlers is BaseTest {
   }
 
   function test_configureTokenHandlers_RevertWhen_SelectorNotAllowed() public {
-    ERC20LockBoxTokenHandler tokenHandler = new ERC20LockBoxTokenHandler(address(s_token));
+    ERC20LockReleaseTokenHandler tokenHandler = new ERC20LockReleaseTokenHandler(address(s_token));
 
     SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](1);
     tokenHandlers[0] = SiloedTokenPool.TokenHandlerConfig({
@@ -97,7 +97,7 @@ contract SiloedTokenPool_configureTokenHandlers is BaseTest {
 
   function test_configureTokenHandlers_RevertWhen_InvalidToken() public {
     address wrongToken = address(999);
-    ERC20LockBoxTokenHandler invalidTokenHandler = new ERC20LockBoxTokenHandler(wrongToken);
+    ERC20LockReleaseTokenHandler invalidTokenHandler = new ERC20LockReleaseTokenHandler(wrongToken);
     SiloedTokenPool.TokenHandlerConfig[] memory tokenHandlers = new SiloedTokenPool.TokenHandlerConfig[](1);
     tokenHandlers[0] = SiloedTokenPool.TokenHandlerConfig({
       remoteChainSelector: SILOED_CHAIN_SELECTOR, tokenHandler: address(invalidTokenHandler)

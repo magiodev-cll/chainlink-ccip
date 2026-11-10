@@ -2,13 +2,13 @@
 pragma solidity ^0.8.24;
 
 import {ITokenHandler} from "../../../interfaces/ITokenHandler.sol";
-import {BurnMintTokenHandler} from "../../../pools/BurnMintTokenHandler.sol";
+import {ERC20ExternalMinterTokenHandler} from "../../../pools/ERC20ExternalMinterTokenHandler.sol";
 import {TokenHandler} from "../../../pools/TokenHandler.sol";
-import {BurnMintTokenHandlerSetup} from "./BurnMintTokenHandlerSetup.t.sol";
+import {ERC20ExternalMinterTokenHandlerSetup} from "./ERC20ExternalMinterTokenHandlerSetup.t.sol";
 import {AuthorizedCallers} from "@chainlink/contracts/src/v0.8/shared/access/AuthorizedCallers.sol";
 
-contract BurnMintTokenHandler_withdraw is BurnMintTokenHandlerSetup {
-  function test_withdraw_MintsToRecipient() public {
+contract ERC20ExternalMinterTokenHandler_withdraw is ERC20ExternalMinterTokenHandlerSetup {
+  function test_withdraw_MintsThroughMinter() public {
     uint256 amount = 1_000e18;
     uint256 supplyBefore = s_token.totalSupply();
 
@@ -35,7 +35,7 @@ contract BurnMintTokenHandler_withdraw is BurnMintTokenHandlerSetup {
 
   function test_withdraw_RevertWhen_MaxAmount() public {
     vm.startPrank(s_bridgeCaller);
-    vm.expectRevert(BurnMintTokenHandler.MaxAmountNotSupported.selector);
+    vm.expectRevert(ERC20ExternalMinterTokenHandler.MaxAmountNotSupported.selector);
 
     s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, type(uint256).max, s_recipient);
     vm.stopPrank();

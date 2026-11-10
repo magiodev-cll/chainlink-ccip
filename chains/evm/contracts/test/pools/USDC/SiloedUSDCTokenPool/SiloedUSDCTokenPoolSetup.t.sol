@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {ERC20LockBoxTokenHandler} from "../../../../pools/ERC20LockBoxTokenHandler.sol";
+import {ERC20LockReleaseTokenHandler} from "../../../../pools/ERC20LockReleaseTokenHandler.sol";
 import {SiloedTokenPool} from "../../../../pools/SiloedTokenPool.sol";
 import {SiloedUSDCTokenPool} from "../../../../pools/USDC/SiloedUSDCTokenPool.sol";
 import {CrossChainToken} from "../../../../tokens/CrossChainToken.sol";
@@ -12,14 +12,14 @@ contract SiloedUSDCTokenPoolSetup is USDCSetup {
   SiloedUSDCTokenPool internal s_usdcTokenPool;
   SiloedUSDCTokenPool internal s_usdcTokenPoolTransferLiquidity;
 
-  ERC20LockBoxTokenHandler internal s_sourceTokenHandler;
-  ERC20LockBoxTokenHandler internal s_destTokenHandler;
+  ERC20LockReleaseTokenHandler internal s_sourceTokenHandler;
+  ERC20LockReleaseTokenHandler internal s_destTokenHandler;
 
   function setUp() public virtual override {
     super.setUp();
 
-    s_sourceTokenHandler = new ERC20LockBoxTokenHandler(address(s_USDCToken));
-    s_destTokenHandler = new ERC20LockBoxTokenHandler(address(s_USDCToken));
+    s_sourceTokenHandler = new ERC20LockReleaseTokenHandler(address(s_USDCToken));
+    s_destTokenHandler = new ERC20LockReleaseTokenHandler(address(s_USDCToken));
 
     s_usdcTokenPool = new SiloedUSDCTokenPool(
       s_USDCToken,

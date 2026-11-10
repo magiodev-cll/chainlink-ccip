@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IBurnMintERC20} from "../../../interfaces/IBurnMintERC20.sol";
 import {IExternalMinter} from "../../../interfaces/IExternalMinter.sol";
-import {ExternalMinterTokenHandler} from "../../../pools/ExternalMinterTokenHandler.sol";
+import {ERC20ExternalMinterTokenHandler} from "../../../pools/ERC20ExternalMinterTokenHandler.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
 import {CrossChainToken} from "../../../tokens/CrossChainToken.sol";
 import {BaseTest} from "../../BaseTest.t.sol";
@@ -41,10 +41,10 @@ contract MockExternalMinter is IExternalMinter {
   }
 }
 
-contract ExternalMinterTokenHandlerSetup is BaseTest {
+contract ERC20ExternalMinterTokenHandlerSetup is BaseTest {
   CrossChainToken internal s_token;
   MockExternalMinter internal s_minter;
-  ExternalMinterTokenHandler internal s_handler;
+  ERC20ExternalMinterTokenHandler internal s_handler;
   address internal s_bridgeCaller = makeAddr("bridge_caller");
   address internal s_adminCaller = makeAddr("admin_caller");
   address internal s_recipient = makeAddr("recipient");
@@ -72,7 +72,7 @@ contract ExternalMinterTokenHandlerSetup is BaseTest {
     s_token.grantMintAndBurnRoles(address(s_minter));
     s_token.grantMintAndBurnRoles(OWNER);
 
-    s_handler = new ExternalMinterTokenHandler(address(s_token), address(s_minter));
+    s_handler = new ERC20ExternalMinterTokenHandler(address(s_token), address(s_minter));
 
     address[] memory callers = new address[](1);
     callers[0] = s_bridgeCaller;

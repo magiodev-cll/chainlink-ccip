@@ -11,7 +11,7 @@ import {SafeERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/utils/SafeERC
 
 /// @notice Token handler that burns and mints through an external minter.
 /// @dev The minter owns the token supply, so this handler moves tokens to itself before calling the minter's burn.
-contract ExternalMinterTokenHandler is TokenHandler {
+contract ERC20ExternalMinterTokenHandler is TokenHandler {
   using SafeERC20 for IERC20;
 
   error MinterTokenMismatch(address token, address minterToken);
@@ -33,7 +33,7 @@ contract ExternalMinterTokenHandler is TokenHandler {
   }
 
   function typeAndVersion() external pure virtual override returns (string memory) {
-    return "ExternalMinterTokenHandler 2.1.0";
+    return "ERC20ExternalMinterTokenHandler 2.1.0";
   }
 
   /// @notice Returns the external minter used by this handler.

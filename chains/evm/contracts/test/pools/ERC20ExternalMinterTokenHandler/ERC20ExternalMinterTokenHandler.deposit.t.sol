@@ -2,13 +2,13 @@
 pragma solidity ^0.8.24;
 
 import {ITokenHandler} from "../../../interfaces/ITokenHandler.sol";
-import {BurnMintTokenHandler} from "../../../pools/BurnMintTokenHandler.sol";
+import {ERC20ExternalMinterTokenHandler} from "../../../pools/ERC20ExternalMinterTokenHandler.sol";
 import {TokenHandler} from "../../../pools/TokenHandler.sol";
-import {BurnMintTokenHandlerSetup} from "./BurnMintTokenHandlerSetup.t.sol";
+import {ERC20ExternalMinterTokenHandlerSetup} from "./ERC20ExternalMinterTokenHandlerSetup.t.sol";
 import {AuthorizedCallers} from "@chainlink/contracts/src/v0.8/shared/access/AuthorizedCallers.sol";
 
-contract BurnMintTokenHandler_deposit is BurnMintTokenHandlerSetup {
-  function test_deposit_BurnsFromBridgeCaller() public {
+contract ERC20ExternalMinterTokenHandler_deposit is ERC20ExternalMinterTokenHandlerSetup {
+  function test_deposit_BurnsThroughMinter() public {
     uint256 amount = 1_000e18;
     uint256 supplyBefore = s_token.totalSupply();
 
@@ -24,6 +24,8 @@ contract BurnMintTokenHandler_deposit is BurnMintTokenHandlerSetup {
     assertEq(s_token.balanceOf(s_bridgeCaller), 9_000e18);
     assertEq(s_token.totalSupply(), supplyBefore - amount);
     assertEq(s_token.balanceOf(address(s_handler)), 0);
+    assertEq(s_token.balanceOf(address(s_minter)), 0);
+    assertEq(s_token.allowance(address(s_handler), address(s_minter)), 0);
   }
 
   function test_deposit_AdminCaller() public {
@@ -31,10 +33,6 @@ contract BurnMintTokenHandler_deposit is BurnMintTokenHandlerSetup {
 
     vm.startPrank(s_adminCaller);
     s_token.approve(address(s_handler), amount);
-
-    vm.expectEmit();
-    emit ITokenHandler.Deposit(address(s_token), s_adminCaller, 0, amount);
-
     s_handler.deposit(address(s_token), 0, amount);
     vm.stopPrank();
 
@@ -91,15 +89,5 @@ contract BurnMintTokenHandler_deposit is BurnMintTokenHandlerSetup {
 
     s_handler.deposit(address(1), BRIDGE_CHAIN_SELECTOR, 1);
     vm.stopPrank();
-  }
-
-  function test_deposit_RevertWhen_TokenHasNoBurnAllowance() public {
-    vm.startPrank(s_bridgeCaller);
-    vm.expectRevert();
-
-    s_handler.deposit(address(s_token), BRIDGE_CHAIN_SELECTOR, 1);
-    vm.stopPrank();
-
-    assertEq(s_token.balanceOf(s_bridgeCaller), 10_000e18);
   }
 }

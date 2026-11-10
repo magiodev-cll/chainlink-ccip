@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {ERC20LockBoxTokenHandler} from "../../../pools/ERC20LockBoxTokenHandler.sol";
+import {ERC20LockReleaseTokenHandler} from "../../../pools/ERC20LockReleaseTokenHandler.sol";
 import {SiloedTokenPool} from "../../../pools/SiloedTokenPool.sol";
 import {TokenPool} from "../../../pools/TokenPool.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
@@ -25,8 +25,8 @@ contract SiloedTokenPoolSetup is BaseTest {
   address internal s_siloedDestPoolAddress = address(4245234524);
   uint64 internal constant SILOED_CHAIN_SELECTOR = DEST_CHAIN_SELECTOR + 1;
 
-  ERC20LockBoxTokenHandler internal s_tokenHandler;
-  ERC20LockBoxTokenHandler internal s_siloTokenHandler;
+  ERC20LockReleaseTokenHandler internal s_tokenHandler;
+  ERC20LockReleaseTokenHandler internal s_siloTokenHandler;
 
   function setUp() public virtual override {
     super.setUp();
@@ -113,8 +113,8 @@ contract SiloedTokenPoolSetup is BaseTest {
 
   function _deployTokenHandler(
     uint64 remoteChainSelector
-  ) internal returns (ERC20LockBoxTokenHandler tokenHandler) {
-    tokenHandler = new ERC20LockBoxTokenHandler(address(s_token));
+  ) internal returns (ERC20LockReleaseTokenHandler tokenHandler) {
+    tokenHandler = new ERC20LockReleaseTokenHandler(address(s_token));
     tokenHandler.setSelectorAllowed(remoteChainSelector, true);
 
     address[] memory allowedCallers = new address[](1);

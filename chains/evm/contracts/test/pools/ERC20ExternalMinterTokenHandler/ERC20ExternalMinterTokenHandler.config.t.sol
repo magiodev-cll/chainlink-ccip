@@ -2,16 +2,16 @@
 pragma solidity ^0.8.24;
 
 import {ITokenHandler} from "../../../interfaces/ITokenHandler.sol";
-import {ExternalMinterTokenHandler} from "../../../pools/ExternalMinterTokenHandler.sol";
+import {ERC20ExternalMinterTokenHandler} from "../../../pools/ERC20ExternalMinterTokenHandler.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
 import {CrossChainToken} from "../../../tokens/CrossChainToken.sol";
-import {ExternalMinterTokenHandlerSetup} from "./ExternalMinterTokenHandlerSetup.t.sol";
+import {ERC20ExternalMinterTokenHandlerSetup} from "./ERC20ExternalMinterTokenHandlerSetup.t.sol";
 
-contract ExternalMinterTokenHandler_config is ExternalMinterTokenHandlerSetup {
+contract ERC20ExternalMinterTokenHandler_config is ERC20ExternalMinterTokenHandlerSetup {
   function test_constructor() public view {
     assertEq(address(s_handler.getToken()), address(s_token));
     assertEq(address(s_handler.getMinter()), address(s_minter));
-    assertEq(s_handler.typeAndVersion(), "ExternalMinterTokenHandler 2.1.0");
+    assertEq(s_handler.typeAndVersion(), "ERC20ExternalMinterTokenHandler 2.1.0");
     assertTrue(s_handler.getMechanism() == ITokenHandler.Mechanism.BURN_MINT);
   }
 
@@ -32,15 +32,15 @@ contract ExternalMinterTokenHandler_config is ExternalMinterTokenHandlerSetup {
 
     vm.expectRevert(
       abi.encodeWithSelector(
-        ExternalMinterTokenHandler.MinterTokenMismatch.selector, address(otherToken), address(s_token)
+        ERC20ExternalMinterTokenHandler.MinterTokenMismatch.selector, address(otherToken), address(s_token)
       )
     );
-    new ExternalMinterTokenHandler(address(otherToken), address(s_minter));
+    new ERC20ExternalMinterTokenHandler(address(otherToken), address(s_minter));
   }
 
   function test_constructor_RevertWhen_ZeroMinter() public {
     vm.expectRevert();
-    new ExternalMinterTokenHandler(address(s_token), address(0));
+    new ERC20ExternalMinterTokenHandler(address(s_token), address(0));
   }
 
   function test_supportsInterface() public view {

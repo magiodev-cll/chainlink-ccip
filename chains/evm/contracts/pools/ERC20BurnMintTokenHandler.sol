@@ -7,7 +7,7 @@ import {ITokenHandler} from "../interfaces/ITokenHandler.sol";
 import {TokenHandler} from "./TokenHandler.sol";
 
 /// @notice Token handler that burns on deposit and mints on withdrawal.
-contract BurnMintTokenHandler is TokenHandler {
+contract ERC20BurnMintTokenHandler is TokenHandler {
   error MaxAmountNotSupported();
 
   constructor(
@@ -15,7 +15,7 @@ contract BurnMintTokenHandler is TokenHandler {
   ) TokenHandler(token) {}
 
   function typeAndVersion() external pure virtual override returns (string memory) {
-    return "BurnMintTokenHandler 2.1.0";
+    return "ERC20BurnMintTokenHandler 2.1.0";
   }
 
   /// @inheritdoc ITokenHandler

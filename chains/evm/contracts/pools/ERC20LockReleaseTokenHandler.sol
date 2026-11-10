@@ -9,7 +9,7 @@ import {IERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/utils/SafeERC20.sol";
 
 /// @notice Token handler that keeps tokens in its own balance until they are withdrawn.
-contract ERC20LockBoxTokenHandler is TokenHandler {
+contract ERC20LockReleaseTokenHandler is TokenHandler {
   using SafeERC20 for IERC20;
 
   error InsufficientBalance(uint256 requested, uint256 available);
@@ -20,7 +20,7 @@ contract ERC20LockBoxTokenHandler is TokenHandler {
   ) TokenHandler(token) {}
 
   function typeAndVersion() external pure virtual override returns (string memory) {
-    return "ERC20LockBoxTokenHandler 2.1.0";
+    return "ERC20LockReleaseTokenHandler 2.1.0";
   }
 
   /// @inheritdoc ITokenHandler

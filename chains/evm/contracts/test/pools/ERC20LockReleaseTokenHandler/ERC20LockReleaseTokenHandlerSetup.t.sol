@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {ERC20LockBoxTokenHandler} from "../../../pools/ERC20LockBoxTokenHandler.sol";
+import {ERC20LockReleaseTokenHandler} from "../../../pools/ERC20LockReleaseTokenHandler.sol";
 import {BaseERC20} from "../../../tokens/BaseERC20.sol";
 import {CrossChainToken} from "../../../tokens/CrossChainToken.sol";
 import {BaseTest} from "../../BaseTest.t.sol";
@@ -9,9 +9,9 @@ import {AuthorizedCallers} from "@chainlink/contracts/src/v0.8/shared/access/Aut
 
 import {IERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/IERC20.sol";
 
-contract ERC20LockBoxTokenHandlerSetup is BaseTest {
+contract ERC20LockReleaseTokenHandlerSetup is BaseTest {
   IERC20 internal s_token;
-  ERC20LockBoxTokenHandler internal s_handler;
+  ERC20LockReleaseTokenHandler internal s_handler;
   address internal s_bridgeCaller = makeAddr("bridge_caller");
   address internal s_adminCaller = makeAddr("admin_caller");
   address internal s_recipient = makeAddr("recipient");
@@ -42,7 +42,7 @@ contract ERC20LockBoxTokenHandlerSetup is BaseTest {
     deal(address(s_token), s_bridgeCaller, type(uint256).max);
     deal(address(s_token), s_adminCaller, type(uint256).max);
 
-    s_handler = new ERC20LockBoxTokenHandler(address(s_token));
+    s_handler = new ERC20LockReleaseTokenHandler(address(s_token));
 
     address[] memory callers = new address[](1);
     callers[0] = s_bridgeCaller;

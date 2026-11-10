@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
-import {ERC20LockBoxTokenHandler} from "../../../../pools/ERC20LockBoxTokenHandler.sol";
+import {ERC20LockReleaseTokenHandler} from "../../../../pools/ERC20LockReleaseTokenHandler.sol";
 import {SiloedTokenPool} from "../../../../pools/SiloedTokenPool.sol";
 import {SiloedUSDCTokenPool} from "../../../../pools/USDC/SiloedUSDCTokenPool.sol";
 import {SiloedUSDCTokenPoolSetup} from "./SiloedUSDCTokenPoolSetup.t.sol";
@@ -9,8 +9,8 @@ import {AuthorizedCallers} from "@chainlink/contracts/src/v0.8/shared/access/Aut
 
 contract SiloedUSDCTokenPool_configureTokenHandlers is SiloedUSDCTokenPoolSetup {
   function test_configureTokenHandlers() public {
-    ERC20LockBoxTokenHandler newSourceTokenHandler = new ERC20LockBoxTokenHandler(address(s_USDCToken));
-    ERC20LockBoxTokenHandler newDestTokenHandler = new ERC20LockBoxTokenHandler(address(s_USDCToken));
+    ERC20LockReleaseTokenHandler newSourceTokenHandler = new ERC20LockReleaseTokenHandler(address(s_USDCToken));
+    ERC20LockReleaseTokenHandler newDestTokenHandler = new ERC20LockReleaseTokenHandler(address(s_USDCToken));
 
     newSourceTokenHandler.setSelectorAllowed(SOURCE_CHAIN_SELECTOR, true);
     newDestTokenHandler.setSelectorAllowed(DEST_CHAIN_SELECTOR, true);

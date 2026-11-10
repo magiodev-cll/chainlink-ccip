@@ -133,9 +133,9 @@ compileContract pools/BurnToAddressMintTokenPool
 compileContract pools/TokenPool
 compileContract pools/SiloedTokenPool
 compileContract pools/ERC20LockBox
-compileContract pools/ERC20LockBoxTokenHandler
-compileContract pools/BurnMintTokenHandler
-compileContract pools/ExternalMinterTokenHandler
+compileContract pools/ERC20LockReleaseTokenHandler
+compileContract pools/ERC20BurnMintTokenHandler
+compileContract pools/ERC20ExternalMinterTokenHandler
 compileContract pools/USDC/CCTPMessageTransmitterProxy
 compileContract pools/USDC/SiloedUSDCTokenPool
 compileContract pools/USDC/USDCTokenPoolProxy
