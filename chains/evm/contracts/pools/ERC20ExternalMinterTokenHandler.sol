@@ -4,14 +4,14 @@ pragma solidity ^0.8.24;
 import {IExternalMinter} from "../interfaces/IExternalMinter.sol";
 import {ITokenHandler} from "../interfaces/ITokenHandler.sol";
 
-import {TokenHandler} from "./TokenHandler.sol";
+import {BurnMintTokenHandlerBase} from "./BurnMintTokenHandlerBase.sol";
 
 import {IERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts@5.3.0/token/ERC20/utils/SafeERC20.sol";
 
 /// @notice Token handler that burns and mints through an external minter.
 /// @dev The minter owns the token supply, so this handler moves tokens to itself before calling the minter's burn.
-contract ERC20ExternalMinterTokenHandler is TokenHandler {
+contract ERC20ExternalMinterTokenHandler is BurnMintTokenHandlerBase {
   using SafeERC20 for IERC20;
 
   error MinterTokenMismatch(address token, address minterToken);
@@ -23,7 +23,7 @@ contract ERC20ExternalMinterTokenHandler is TokenHandler {
   constructor(
     address token,
     address minter
-  ) TokenHandler(token) {
+  ) BurnMintTokenHandlerBase(token) {
     if (minter == address(0)) revert ZeroAddressNotAllowed();
 
     i_minter = IExternalMinter(minter);
@@ -48,6 +48,7 @@ contract ERC20ExternalMinterTokenHandler is TokenHandler {
     uint256 amount
   ) external override {
     _validateDepositWithdraw(token, remoteChainSelector, amount);
+    _recordBurn(remoteChainSelector, amount);
 
     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
     IERC20(token).forceApprove(address(i_minter), amount);
@@ -77,6 +78,7 @@ contract ERC20ExternalMinterTokenHandler is TokenHandler {
       revert MaxAmountNotSupported();
     }
 
+    _recordMint(remoteChainSelector, amount);
     if (!i_minter.mint(recipient, amount)) revert ExternalMinterCallFailed(address(i_minter));
 
     emit Withdrawal(token, msg.sender, recipient, remoteChainSelector, amount);

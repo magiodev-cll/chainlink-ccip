@@ -13,20 +13,37 @@ import {IERC165} from "@openzeppelin/contracts@5.3.0/utils/introspection/IERC165
 /// @dev Bridge callers can only use allowed non-zero selectors; selector zero is reserved for admin and liquidity
 /// callers. The pool checks the selector allowlist at configuration time and the handler checks it again on every call.
 abstract contract TokenHandler is ITokenHandler, IERC165, ITypeAndVersion, AuthorizedCallers {
+  /// @notice Thrown when a deposit or withdrawal amount is zero.
   error TokenAmountCannotBeZero();
+
+  /// @notice Thrown when a withdrawal recipient is the zero address.
   error RecipientCannotBeZeroAddress();
+
+  /// @notice Thrown when the token is not the handler's supported token.
   error UnsupportedToken(address token);
+
+  /// @notice Thrown when a caller is not allowed to use selector zero.
   error UnauthorizedAdminCaller(address caller);
+
+  /// @notice Thrown when a bridge caller uses a selector that is not allowed.
   error SelectorNotAllowed(uint64 remoteChainSelector);
+
+  /// @notice Thrown when a chain selector is invalid.
   error InvalidChainSelector();
 
+  /// @notice Emitted when a selector's allowlist status is updated.
   event SelectorAllowedSet(uint64 indexed remoteChainSelector, bool allowed);
+
+  /// @notice Emitted when an admin caller is added or removed.
   event AdminCallerSet(address indexed caller, bool allowed);
 
   /// @notice The token supported by this handler.
   IERC20 internal immutable i_token;
 
+  /// @dev Selectors on which bridge callers may use this handler.
   mapping(uint64 remoteChainSelector => bool allowed) private s_allowedSelectors;
+
+  /// @dev Callers allowed to use selector zero for admin and liquidity operations.
   mapping(address caller => bool allowed) private s_adminCallers;
 
   constructor(
@@ -67,9 +84,19 @@ abstract contract TokenHandler is ITokenHandler, IERC165, ITypeAndVersion, Autho
   ) external onlyOwner {
     if (remoteChainSelector == 0) revert InvalidChainSelector();
 
+    _validateSelectorAllowed(remoteChainSelector, allowed);
+
     s_allowedSelectors[remoteChainSelector] = allowed;
     emit SelectorAllowedSet(remoteChainSelector, allowed);
   }
+
+  /// @dev Hook for subclasses that need extra preconditions before a selector is allowed or disallowed.
+  /// @param remoteChainSelector The selector being configured.
+  /// @param allowed Whether the selector is being allowed or disallowed.
+  function _validateSelectorAllowed(
+    uint64 remoteChainSelector,
+    bool allowed
+  ) internal view virtual {}
 
   /// @notice Grants or revokes admin and liquidity access for selector zero.
   function setAdminCaller(

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {ITokenHandler} from "../../../interfaces/ITokenHandler.sol";
+import {BurnMintTokenHandlerBase} from "../../../pools/BurnMintTokenHandlerBase.sol";
 import {ERC20ExternalMinterTokenHandler} from "../../../pools/ERC20ExternalMinterTokenHandler.sol";
 import {TokenHandler} from "../../../pools/TokenHandler.sol";
 import {ERC20ExternalMinterTokenHandlerSetup} from "./ERC20ExternalMinterTokenHandlerSetup.t.sol";
@@ -60,6 +61,28 @@ contract ERC20ExternalMinterTokenHandler_withdraw is ERC20ExternalMinterTokenHan
     assertEq(s_token.balanceOf(recipient1), 300e18);
     assertEq(s_token.balanceOf(recipient2), 250e18);
     assertEq(s_token.totalSupply(), supplyBefore + 550e18);
+  }
+
+  function test_withdraw_RevertWhen_MintCapExceeded() public {
+    s_handler.setSelectorCaps(BRIDGE_CHAIN_SELECTOR, 500e18, type(uint256).max);
+
+    vm.startPrank(s_bridgeCaller);
+    vm.expectRevert(
+      abi.encodeWithSelector(BurnMintTokenHandlerBase.MintCapExceeded.selector, BRIDGE_CHAIN_SELECTOR, 600e18, 500e18)
+    );
+
+    s_handler.withdraw(address(s_token), BRIDGE_CHAIN_SELECTOR, 600e18, s_recipient);
+    vm.stopPrank();
+  }
+
+  function test_withdraw_AdminSelectorIgnoresCaps() public {
+    s_handler.setSelectorCaps(BRIDGE_CHAIN_SELECTOR, 0, 0);
+
+    vm.startPrank(s_adminCaller);
+    s_handler.withdraw(address(s_token), 0, 1_000e18, s_recipient);
+    vm.stopPrank();
+
+    assertEq(s_token.balanceOf(s_recipient), 1_000e18);
   }
 
   function test_withdraw_RevertWhen_MaxAmount() public {

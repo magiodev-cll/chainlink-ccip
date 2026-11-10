@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.24;
 
+import {BurnMintTokenHandlerBase} from "../../../pools/BurnMintTokenHandlerBase.sol";
 import {ERC20BurnMintTokenHandler} from "../../../pools/ERC20BurnMintTokenHandler.sol";
 import {SiloedTokenPool} from "../../../pools/SiloedTokenPool.sol";
 import {TokenPool} from "../../../pools/TokenPool.sol";
@@ -38,6 +39,7 @@ contract SiloedTokenPool_burnMint is BaseTest {
 
     s_handler = new ERC20BurnMintTokenHandler(address(s_token));
     s_token.grantMintAndBurnRoles(address(s_handler));
+    s_handler.setSelectorCaps(REMOTE_CHAIN_SELECTOR, type(uint256).max, type(uint256).max);
     s_handler.setSelectorAllowed(REMOTE_CHAIN_SELECTOR, true);
 
     s_pool = new SiloedTokenPool(
@@ -117,5 +119,52 @@ contract SiloedTokenPool_burnMint is BaseTest {
 
     assertEq(s_token.balanceOf(recipient), amount);
     assertEq(s_token.totalSupply(), supplyBefore + amount);
+  }
+
+  function test_lockOrBurn_RevertWhen_BurnCapExceeded() public {
+    uint256 amount = 100e18;
+    s_handler.setSelectorCaps(REMOTE_CHAIN_SELECTOR, type(uint256).max, 50e18);
+    s_token.mint(address(s_pool), amount);
+
+    vm.startPrank(ON_RAMP);
+    vm.expectRevert(
+      abi.encodeWithSelector(BurnMintTokenHandlerBase.BurnCapExceeded.selector, REMOTE_CHAIN_SELECTOR, amount, 50e18)
+    );
+
+    s_pool.lockOrBurn(
+      Pool.LockOrBurnInV1({
+        originalSender: STRANGER,
+        receiver: bytes(""),
+        amount: amount,
+        remoteChainSelector: REMOTE_CHAIN_SELECTOR,
+        localToken: address(s_token)
+      })
+    );
+    vm.stopPrank();
+  }
+
+  function test_releaseOrMint_RevertWhen_MintCapExceeded() public {
+    uint256 amount = 100e18;
+    address recipient = makeAddr("recipient");
+    s_handler.setSelectorCaps(REMOTE_CHAIN_SELECTOR, 50e18, type(uint256).max);
+
+    vm.startPrank(OFF_RAMP);
+    vm.expectRevert(
+      abi.encodeWithSelector(BurnMintTokenHandlerBase.MintCapExceeded.selector, REMOTE_CHAIN_SELECTOR, amount, 50e18)
+    );
+
+    s_pool.releaseOrMint(
+      Pool.ReleaseOrMintInV1({
+        originalSender: bytes(""),
+        receiver: recipient,
+        sourceDenominatedAmount: amount,
+        localToken: address(s_token),
+        remoteChainSelector: REMOTE_CHAIN_SELECTOR,
+        sourcePoolAddress: abi.encode(REMOTE_POOL),
+        sourcePoolData: "",
+        offchainTokenData: ""
+      })
+    );
+    vm.stopPrank();
   }
 }

@@ -4,15 +4,15 @@ pragma solidity ^0.8.24;
 import {IBurnMintERC20} from "../interfaces/IBurnMintERC20.sol";
 import {ITokenHandler} from "../interfaces/ITokenHandler.sol";
 
-import {TokenHandler} from "./TokenHandler.sol";
+import {BurnMintTokenHandlerBase} from "./BurnMintTokenHandlerBase.sol";
 
 /// @notice Token handler that burns on deposit and mints on withdrawal.
-contract ERC20BurnMintTokenHandler is TokenHandler {
+contract ERC20BurnMintTokenHandler is BurnMintTokenHandlerBase {
   error MaxAmountNotSupported();
 
   constructor(
     address token
-  ) TokenHandler(token) {}
+  ) BurnMintTokenHandlerBase(token) {}
 
   function typeAndVersion() external pure virtual override returns (string memory) {
     return "ERC20BurnMintTokenHandler 2.0.0";
@@ -25,6 +25,7 @@ contract ERC20BurnMintTokenHandler is TokenHandler {
     uint256 amount
   ) external override {
     _validateDepositWithdraw(token, remoteChainSelector, amount);
+    _recordBurn(remoteChainSelector, amount);
 
     IBurnMintERC20(token).burnFrom(msg.sender, amount);
 
@@ -47,6 +48,7 @@ contract ERC20BurnMintTokenHandler is TokenHandler {
       revert MaxAmountNotSupported();
     }
 
+    _recordMint(remoteChainSelector, amount);
     IBurnMintERC20(token).mint(recipient, amount);
 
     emit Withdrawal(token, msg.sender, recipient, remoteChainSelector, amount);

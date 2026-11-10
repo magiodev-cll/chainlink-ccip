@@ -754,6 +754,8 @@ contracts:
         access: public
       - name: getMechanism
         access: public
+      - name: getSelectorAccounting
+        access: public
       - name: getToken
         access: public
       - name: isAdminCaller
@@ -765,6 +767,8 @@ contracts:
       - name: setAdminCaller
         access: owner
       - name: setSelectorAllowed
+        access: owner
+      - name: setSelectorCaps
         access: owner
       - name: transferOwnership
         access: owner
@@ -778,6 +782,8 @@ contracts:
         access: public
       - name: getMechanism
         access: public
+      - name: getSelectorAccounting
+        access: public
       - name: getToken
         access: public
       - name: isAdminCaller
@@ -789,6 +795,8 @@ contracts:
       - name: setAdminCaller
         access: owner
       - name: setSelectorAllowed
+        access: owner
+      - name: setSelectorCaps
         access: owner
       - name: transferOwnership
         access: owner

@@ -44,6 +44,7 @@ contract ERC20BurnMintTokenHandlerSetup is BaseTest {
       AuthorizedCallers.AuthorizedCallerArgs({addedCallers: callers, removedCallers: new address[](0)})
     );
     s_handler.setAdminCaller(s_adminCaller, true);
+    s_handler.setSelectorCaps(BRIDGE_CHAIN_SELECTOR, type(uint256).max, type(uint256).max);
     s_handler.setSelectorAllowed(BRIDGE_CHAIN_SELECTOR, true);
 
     s_token.mint(s_bridgeCaller, 10_000e18);
