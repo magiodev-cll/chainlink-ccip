@@ -39,8 +39,8 @@ contract SiloedTokenPool_burnMint is BaseTest {
 
     s_handler = new ERC20BurnMintTokenHandler(address(s_token));
     s_token.grantMintAndBurnRoles(address(s_handler));
-    s_handler.setSelectorAllowed(REMOTE_CHAIN_SELECTOR, true);
     s_handler.setSelectorCaps(REMOTE_CHAIN_SELECTOR, type(uint256).max, type(uint256).max);
+    s_handler.setSelectorAllowed(REMOTE_CHAIN_SELECTOR, true);
 
     s_pool = new SiloedTokenPool(
       IERC20(address(s_token)), DEFAULT_TOKEN_DECIMALS, address(0), address(s_mockRMNRemote), address(s_sourceRouter)
